@@ -36,7 +36,8 @@ public:
 	static void copyObject(TDirectory *tdir, const TString &objName);
 
 	static void map(TChain *chain, const TString &selector, const TString &tag, const TString &keep = "");
-	static void map(const TString &fileName, const TString &treeName, const TString &selector, const TString &tag, const TString &keep = "");
+
+	static void map(const TString &fileName, const TString &mappers, const TString &tag);
 };
 
 
