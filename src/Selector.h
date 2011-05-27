@@ -35,9 +35,11 @@ public:
 	// Implementation only supports trees for now
 	static void copyObject(TDirectory *tdir, const TString &objName);
 
-	static void map(TChain *chain, const TString &selector, const TString &tag, const TString &keep = "");
+	static void mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep = "");
 
-	static void map(const TString &fileName, const TString &mappers, const TString &tag);
+	static void mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile = false);
+
+	static void mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile = false);
 };
 
 

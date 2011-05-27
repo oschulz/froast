@@ -57,7 +57,7 @@ void Selector::copyObject(TDirectory *tdir, const TString &objName) {
 }
 
 
-void Selector::map(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
+void Selector::mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
 	TObjArray *chainElems = chain->GetListOfFiles();
 	for (int chainEntry = 0; chainEntry < chainElems->GetEntriesFast(); ++chainEntry) {
 		TChainElement *e = dynamic_cast<TChainElement*>(chainElems->At(chainEntry));
@@ -92,7 +92,58 @@ void Selector::map(TChain *chain, const TString &selector, const TString &tag, c
 }
 
 
-void Selector::map(const TString &fileName, const TString &mappers, const TString &tag) {
+void Selector::mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile) {
+	TFile inFile(inFileName.Data(), "read");
+	TFile outFile(outFileName.Data(), "recreate");
+
+	TPRegexp mapperSpecExpr("^(.*)\\((.*)\\)$");
+	TPRegexp xxExp("\\+\\+$");
+
+	TObjArray* mapperNames = mappers.Tokenize(",");
+	for (int mapperEntry = 0; mapperEntry < mapperNames->GetEntriesFast(); ++mapperEntry) {
+		TString mapper = dynamic_cast<TObjString*>(mapperNames->At(mapperEntry))->GetString().Strip(TString::kBoth);
+		TObjArray* matches = mapperSpecExpr.MatchS(mapper);
+		if (matches->GetEntriesFast() == 3) {
+			TString fctName = dynamic_cast<TObjString*>(matches->At(1))->GetString();
+			if (noRecompile) xxExp.Substitute(fctName, "+"); 
+			TString objName = dynamic_cast<TObjString*>(matches->At(2))->GetString();
+			assert ((fctName != 0) && (objName != 0));
+			delete matches;
+			
+			cerr << "Applying " << fctName << "(" << objName << ")" << endl;
+			
+			TObject *inObj; inFile.GetObject(objName.Data(), inObj);
+			if (inObj != 0) {
+				TTree *inTree = dynamic_cast<TTree*>(inObj);
+				if (inTree != 0) {
+					if (fctName == "copy") {
+						TTree *copied = inTree->CloneTree();
+						copied->Write();
+					} else {
+						TSelector *sel = TSelector::GetSelector(fctName.Data());
+						if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
+						inTree->Process(sel);
+						delete sel;
+					}
+				} else throw invalid_argument(string("Objects of type ") + inObj->Class()->GetName() + " not supported yet");
+			} else {
+				delete matches;
+				throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
+			}
+		} else {
+			delete matches;
+			throw invalid_argument(string("Invalid mapper specification: \"") + mapper.Data() + "\"");
+		}
+	}
+	delete mapperNames;
+	
+	outFile.Write();
+	outFile.Close();
+	inFile.Close();
+}
+
+
+void Selector::mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile) {
 	cerr << TString::Format("Selector::map(%s, %s, %s)", fileName.Data(), mappers.Data(), tag.Data()) << endl;
 
 	TChain chain("");
@@ -104,54 +155,8 @@ void Selector::map(const TString &fileName, const TString &mappers, const TStrin
 
 		string outFileName = (File(inFileName).base() % tag.Data()).path();
 		cerr << "Mapping " << inFileName << " to " << outFileName << endl;
-
-		TFile inFile(inFileName.c_str(), "read");
-		TFile outFile(outFileName.c_str(), "recreate");
-
-		TPRegexp mapperSpecExpr("^(.*)\\((.*)\\)$");
-		TPRegexp xxExp("\\+\\+$");
-
-		TObjArray* mapperNames = mappers.Tokenize(",");
-		for (int mapperEntry = 0; mapperEntry < mapperNames->GetEntriesFast(); ++mapperEntry) {
-			TString mapper = dynamic_cast<TObjString*>(mapperNames->At(mapperEntry))->GetString().Strip(TString::kBoth);
-			TObjArray* matches = mapperSpecExpr.MatchS(mapper);
-			if (matches->GetEntriesFast() == 3) {
-				TString fctName = dynamic_cast<TObjString*>(matches->At(1))->GetString();
-				if (chainEntry > 0) xxExp.Substitute(fctName, "+"); // Don't recompile even if fct ends with "++" after first run
-				TString objName = dynamic_cast<TObjString*>(matches->At(2))->GetString();
-				assert ((fctName != 0) && (objName != 0));
-				delete matches;
-				
-				cerr << "Applying " << fctName << "(" << objName << ")" << endl;
-				
-				TObject *inObj; inFile.GetObject(objName.Data(), inObj);
-				if (inObj != 0) {
-					TTree *inTree = dynamic_cast<TTree*>(inObj);
-					if (inTree != 0) {
-						if (fctName == "copy") {
-							TTree *copied = inTree->CloneTree();
-							copied->Write();
-						} else {
-							TSelector *sel = TSelector::GetSelector(fctName.Data());
-							if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
-							inTree->Process(sel);
-							delete sel;
-						}
-					} else throw invalid_argument(string("Objects of type ") + inObj->Class()->GetName() + " not supported yet");
-				} else {
-					delete matches;
-					throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
-				}
-			} else {
-				delete matches;
-				throw invalid_argument(string("Invalid mapper specification: \"") + mapper.Data() + "\"");
-			}
-		}
-		delete mapperNames;
-		
-		outFile.Write();
-		outFile.Close();
-		inFile.Close();
+		// Don't recompile even if fct ends with "++" after first run:
+		mapSingle(inFileName, mappers, outFileName, (chainEntry > 0) || noRecompile);
 	}
 	cerr << "Selector::map(...) finished" << endl;
 }
