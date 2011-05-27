@@ -85,6 +85,7 @@ void Selector::mapMulti(TChain *chain, const TString &selector, const TString &t
 		}
 		delete keeps;
 		
+		Settings::writeToGDirectory();
 		outFile.Write();
 		outFile.Close();
 		inFile.Close();
@@ -137,6 +138,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 	}
 	delete mapperNames;
 	
+	Settings::writeToGDirectory();
 	outFile.Write();
 	outFile.Close();
 	inFile.Close();
