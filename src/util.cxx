@@ -85,7 +85,7 @@ void Settings::writeToGDirectory() {
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
 	while ((record = (TEnvRec*) next())) {
-		if (record->GetLevel() >= kEnvLocal)
+		if ((record->GetLevel() >= kEnvLocal) && !TString(record->GetName()).Contains("Path"))
 			settingsOut.AddLast(record->Clone());
 	}
 	settingsOut.Write("settings", TObject::kSingleKey);
