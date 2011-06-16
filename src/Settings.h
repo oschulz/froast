@@ -49,6 +49,9 @@ public:
 	const THashList* table() const { return tenv()->GetTable(); }
 	THashList* table() { return tenv()->GetTable(); }
 
+	THashList* exportNested(EEnvLevel minLevel = kEnvLocal) const;
+	void importNested(const THashList *nested, EEnvLevel level = kEnvLocal, const TString &prefix = "");
+
 	void write(const TString &fileName, EEnvLevel minLevel = kEnvLocal);
 	void read(const TString &fileName, EEnvLevel level = kEnvLocal);
 	

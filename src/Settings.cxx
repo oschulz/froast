@@ -21,9 +21,18 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
+
+#include <TObjString.h>
+#include <TObjArray.h>
+#include <TMap.h>
+#include <TParameter.h>
 
 #include "util.h"
+#include "JSON.h"
 
 
 ClassImp(froast::Settings)
@@ -62,6 +71,92 @@ const char* Settings::get(const char* name, const char* dflt, bool saveDflt) {
 	if (saveDflt && !tenv()->Defined(name)) tenv()->SetValue(name, value);
 	return value;
 }
+
+
+THashList* Settings::exportNested(EEnvLevel minLevel) const {
+	THashList *list = new THashList;
+
+	const THashList *settings = table();
+	if (settings == 0) return list;
+
+	TIter next(settings, kIterForward);
+	TEnvRec *record;
+	while (record = dynamic_cast<TEnvRec*>(next())) {
+		TString name(record->GetName());
+		TString valueString = TString(record->GetValue()).Strip(TString::kBoth);
+		const char *valueCString = valueString.Data();
+		if (record->GetLevel() >= minLevel) {
+			THashList *currentList = list;
+			TObjArray* nameParts = name.Tokenize(".");
+			int nameDepth =  nameParts->GetEntriesFast();
+			for (int i = 0; i < nameDepth; ++i) {
+				TObjString *key = dynamic_cast<TObjString*>(nameParts->At(i));
+				assert(key != 0);
+				TObject *obj = currentList->FindObject(key);
+				TPair *pair = dynamic_cast<TPair*>(obj);
+				if (i < nameDepth-1) {
+					if (obj != 0) {
+						assert(pair != 0);
+						THashList *child = dynamic_cast<THashList*>(pair->Value());
+						assert(child != 0);
+						currentList = child;
+					} else {
+						THashList *child = new THashList;
+						currentList->AddLast(new TPair(key->Clone(), child));
+						currentList = child;
+					}
+				} else {
+					TObject *value = 0;
+					
+					char *numEnd;
+					double doubleValue = strtod(valueCString, &numEnd);
+					
+					if (valueString.Length() == 0) {
+						value = 0;
+					} else if (valueCString+strlen(valueCString) == numEnd) {
+						int32_t intValue = int32_t(doubleValue);
+						if ((double(intValue) != doubleValue) || valueString.Contains(".") || valueString.Contains("e") || valueString.Contains("E"))
+							value = new TParameter<double>("", doubleValue);
+						else value = new TParameter<int32_t>("", intValue);
+					} else if ((valueString == "true") || (valueString == "false")) {
+						value = new TObjString(valueString);
+					} else {
+						value = new TObjString(valueString);
+					}
+					currentList->AddLast(new TPair(key->Clone(), value));
+				}
+			}
+			delete nameParts;		
+		}
+	}
+	
+	return list;
+}
+
+
+void Settings::importNested(const THashList *nested, EEnvLevel level, const TString &prefix) {
+	int counter = 0;
+	TIter next(nested, kIterForward);
+	const TPair *member;
+	while (member = dynamic_cast<const TPair*>(next())) {
+		const TObjString *keyObj = dynamic_cast<const TObjString*>(member->Key());
+		assert( keyObj != 0 );
+		TString key = keyObj->GetString();
+		TString fullKey = (prefix.Length() == 0) ? key : prefix + "." + key;
+		const TObject *value = member->Value();
+		
+		if (dynamic_cast<const THashList*>(value)) {
+			const THashList *obj = dynamic_cast<const THashList*>(value);
+			importNested(obj, level, fullKey);
+		} else if (dynamic_cast<const TObjString*>(value)) {
+			const TObjString *s = dynamic_cast<const TObjString*>(value);
+			tenv()->SetValue(fullKey, s->GetString(), level);
+		} else {
+			tenv()->SetValue(fullKey, JSON::toString(value).c_str(), level);
+		}
+	}
+}
+
 
 
 void Settings::write(const TString &fileName, EEnvLevel minLevel) {
