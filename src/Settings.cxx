@@ -78,7 +78,8 @@ void Settings::read(const TString &fileName, EEnvLevel level) {
 
 std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
 	THashList *settings = table();
-	assert (settings != 0);
+	if (settings == 0) return out;
+
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
 	while (record = dynamic_cast<TEnvRec*>(next())) {
