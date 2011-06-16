@@ -1,4 +1,5 @@
 // Copyright (C) 2010 by Ivan Vashchaev
+// Modified      2011 Oliver Schulz
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +22,10 @@
 
 #ifndef BLOCK_ALLOCATOR_H
 #define BLOCK_ALLOCATOR_H
+
+
+namespace froast {
+
 
 class block_allocator
 {
@@ -52,5 +57,9 @@ public:
 	// free all allocated blocks
 	void free();
 };
+
+
+} // namespace froast
+
 
 #endif

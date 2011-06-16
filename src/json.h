@@ -1,4 +1,5 @@
 // Copyright (C) 2010 by Ivan Vashchaev
+// Modified      2011 Oliver Schulz
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +24,10 @@
 #define JSON_H
 
 #include "block_allocator.h"
+
+
+namespace froast {
+
 
 enum json_type
 {
@@ -54,5 +59,9 @@ struct json_value
 };
 
 json_value *json_parse(char *source, char **error_pos, char **error_desc, int *error_line, block_allocator *allocator);
+
+
+} // namespace froast
+
 
 #endif

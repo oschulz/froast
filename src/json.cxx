@@ -1,4 +1,5 @@
 // Copyright (C) 2010 by Ivan Vashchaev
+// Modified      2011 Oliver Schulz
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +22,12 @@
 
 #include <memory.h>
 #include "json.h"
+
+
+namespace {
+
+using namespace froast;
+
 
 // true if character represent a digit
 #define IS_DIGIT(c) (c >= '0' && c <= '9')
@@ -198,6 +205,14 @@ void json_append(json_value *lhs, json_value *rhs)
 	return 0
 
 #define CHECK_TOP() if (!top) {ERROR(it, "Unexpected character");}
+
+
+} // namespace
+
+
+
+namespace froast {
+
 
 json_value *json_parse(char *source, char **error_pos, char **error_desc, int *error_line, block_allocator *allocator)
 {
@@ -490,3 +505,6 @@ json_value *json_parse(char *source, char **error_pos, char **error_desc, int *e
 
 	return root;
 }
+
+
+} // namespace froast

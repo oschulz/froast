@@ -1,4 +1,5 @@
 // Copyright (C) 2010 by Ivan Vashchaev
+// Modified      2011 Oliver Schulz
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +23,10 @@
 #include <memory.h>
 #include <algorithm>
 #include "block_allocator.h"
+
+
+namespace froast {
+
 
 block_allocator::block_allocator(size_t blocksize): m_head(0), m_blocksize(blocksize)
 {
@@ -69,3 +74,6 @@ void block_allocator::free()
 {
 	block_allocator(0).swap(*this);
 }
+
+
+} // namespace froast
