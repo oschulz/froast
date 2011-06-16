@@ -108,7 +108,8 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
 	while (record = dynamic_cast<TEnvRec*>(next())) {
-		if ((record->GetLevel() >= kEnvLocal) && !TString(record->GetName()).Contains("Path"))
+		TString name(record->GetName());
+		if ((record->GetLevel() >= minLevel) && !name.Contains("Path"))
 			settingsOut.AddLast(record->Clone());
 	}
 	settingsOut.Write(name.Data(), TObject::kSingleKey);
