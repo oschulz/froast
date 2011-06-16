@@ -23,6 +23,8 @@
 #ifndef VJSON_H
 #define VJSON_H
 
+#include "stdint.h"
+
 #include "block_allocator.h"
 
 
@@ -51,8 +53,8 @@ struct json_value
 	union
 	{
 		char *string_value;
-		int int_value;
-		float float_value;
+		int64_t int_value;
+		double float_value;
 	};
 
 	json_type type;

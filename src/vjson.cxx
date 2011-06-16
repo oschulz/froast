@@ -33,9 +33,9 @@ using namespace froast;
 #define IS_DIGIT(c) (c >= '0' && c <= '9')
 
 // convert string to integer
-char *atoi(char *first, char *last, int *out)
+char *atoi(char *first, char *last, int64_t *out)
 {
-	int sign = 1;
+	int64_t sign = 1;
 	if (first != last)
 	{
 		if (*first == '-')
@@ -49,7 +49,7 @@ char *atoi(char *first, char *last, int *out)
 		}
 	}
 
-	int result = 0;
+	int64_t result = 0;
 	for (; first != last && IS_DIGIT(*first); ++first)
 	{
 		result = 10 * result + (*first - '0');
@@ -90,10 +90,10 @@ char *hatoui(char *first, char *last, unsigned int *out)
 }
 
 // convert string to floating point
-char *atof(char *first, char *last, float *out)
+char *atof(char *first, char *last, double *out)
 {
 	// sign
-	float sign = 1;
+	double sign = 1;
 	if (first != last)
 	{
 		if (*first == '-')
@@ -108,7 +108,7 @@ char *atof(char *first, char *last, float *out)
 	}
 
 	// integer part
-	float result = 0;
+	double result = 0;
 	for (; first != last && IS_DIGIT(*first); ++first)
 	{
 		result = 10 * result + (*first - '0');
@@ -119,7 +119,7 @@ char *atof(char *first, char *last, float *out)
 	{
 		++first;
 
-		float inv_base = 0.1f;
+		double inv_base = 0.1f;
 		for (; first != last && IS_DIGIT(*first); ++first)
 		{
 			result += (*first - '0') * inv_base;
@@ -155,7 +155,7 @@ char *atof(char *first, char *last, float *out)
 
 	if (exponent)
 	{
-		float power_of_ten = 10;
+		double power_of_ten = 10;
 		for (; exponent > 1; exponent--)
 		{
 			power_of_ten *= 10;
@@ -480,7 +480,7 @@ json_value *json_parse(char *source, char **error_pos, char **error_desc, int *e
 
 				if (object->type == JSON_FLOAT && atof(first, it, &object->float_value) != it)
 				{
-					ERROR(first, "Bad float number");
+					ERROR(first, "Bad double number");
 				}
 
 				json_append(top, object);
