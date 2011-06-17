@@ -17,6 +17,7 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <cstring>
 
@@ -29,6 +30,7 @@
 #include "util.h"
 #include "Selector.h"
 #include "Settings.h"
+#include "JSON.h"
 
 using namespace std;
 using namespace froast;
@@ -36,24 +38,56 @@ using namespace froast;
 
 
 int settings(int argc, char *argv[], char *envp[]) {
-	if (argc > 2) {
-		cerr << "Syntax: " << argv[0] << " ROOT_FILE" << endl;
-		return 1;
+	int nargs = argc-1;
+	char **args = argv+1;
+
+	bool jsonOutput = false;
+	if ((nargs >= 1) && (string(args[0]) == "-j")) {
+		--nargs; ++args;
+		jsonOutput = true;
 	}
 
-	if (argc == 1) {
-		Settings::global().write(cout);
+	if (nargs == 0) {
+		if (jsonOutput) {
+			THashList *nested = Settings::global().exportNested();
+			JSON::write(cout, nested) << endl;
+			delete nested;
+		} else Settings::global().write(cout);
 		return 0;
-	} else if ((argc >= 2) && (argc <= 3)) {
-		string inFileName = argv[1];
-		TFile inFile(inFileName.c_str(), "read");
+	} else if (nargs == 1) {
 		Settings settings;
-		if (argc >= 3) settings.read(&inFile, argv[2]);
-		else settings.read(&inFile);
-		settings.write(cout);
+		TString inFileName(args[0]);
+		TString objSpecSep(".root/");
+		if (inFileName.EndsWith(".root") || inFileName.Contains(objSpecSep)) {
+			TString rootFileName = inFileName;
+			TString settingsName = "";
+			int idx = inFileName.Index(objSpecSep);
+			if (idx >= 0) {
+				rootFileName = inFileName(0, idx + objSpecSep.Length() - 1);
+				settingsName = inFileName(idx + objSpecSep.Length(), inFileName.Length() - idx - objSpecSep.Length());
+			}
+			TFile inFile(rootFileName.Data(), "read");
+			if (settingsName.Length() > 0) settings.read(&inFile, settingsName.Data());
+			else settings.read(&inFile);
+		} else if (inFileName.EndsWith(".rootrc")) {
+			settings.read(inFileName.Data());
+		} else if (inFileName.EndsWith(".json")) {
+			ifstream in(inFileName.Data());
+			THashList *nested = JSON::read(in);
+			settings.importNested(nested);
+			delete nested;
+		} else {
+			cerr << "Unknown file extension, can't read settings from \"" << inFileName << "\"." << endl;
+			return 1;
+		}
+		if (jsonOutput) {
+			THashList *nested = settings.exportNested();
+			JSON::write(cout, nested) << endl;
+			delete nested;
+		} else settings.write(cout);
 		return 0;
 	} else {
-		cerr << "Syntax: " << argv[0] << " ROOT_FILE" << endl;
+		cerr << "Syntax: " << args[0] << " [-j] ROOT_FILE SETTINGS" << endl;
 		return 1;
 	}
 }
