@@ -194,8 +194,13 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 		if (varexpParts.size() > 6) Util::split(varexpParts[6], ":", labels, TString::kBoth);
 		size_t nSpecLabels = labels.size();
 		labels.resize(functions.size());
-		for (size_t i = nSpecLabels; i < labels.size(); ++i)
-			labels[i] = functions[i];
+		for (size_t col = nSpecLabels; col < labels.size(); ++col) {
+			labels[col] = functions[col];
+			if (format == FS_JSON) {
+				for (ssize_t i = 0; i < labels[col].Length(); ++i)
+					if (labels[col](i) == '.') labels[col](i) = '$';
+			}
+		}
 	}
 	
 	cerr << "Tabulation expression: ";
