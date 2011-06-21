@@ -311,13 +311,12 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 			if (format == FS_TSV) {
 				for (size_t col = 0; col < ncols; ++col) {
 					if (col > 0) out << "\t";
+					bool isValid = (colFormulas[col]->GetNdim() > 0);
 					if (colFormulas[col]->IsString()) {
-						if (inst < colFormulas[col]->GetNdata())
-							out << colFormulas[col]->EvalStringInstance(inst);
+						if (isValid) out << colFormulas[col]->EvalStringInstance(inst);
 						else out << "null";
 					} else {
-						if (inst < colFormulas[col]->GetNdata())
-							out << colFormulas[col]->EvalInstance(inst);
+						if (isValid) out << colFormulas[col]->EvalInstance(inst);
 						else out << "NaN";
 					}
 				}
@@ -328,13 +327,12 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 				for (size_t col = 0; col < ncols; ++col) {
 					if (col > 0) out << ",";
 					if (!labels.empty()) out << "\"" << labels[col] << "\":";
+					bool isValid = (colFormulas[col]->GetNdim() > 0);
 					if (colFormulas[col]->IsString()) {
-						if (inst < colFormulas[col]->GetNdata())
-							out << "\"" << colFormulas[col]->EvalStringInstance(inst) << "\"";
+						if (isValid) out << "\"" << colFormulas[col]->EvalStringInstance(inst) << "\"";
 						else out << "null";
 					} else {
-						if (inst < colFormulas[col]->GetNdata())
-							out << colFormulas[col]->EvalInstance(inst);
+						if (isValid) out << colFormulas[col]->EvalInstance(inst);
 						else out << "NaN";
 					}
 				}
