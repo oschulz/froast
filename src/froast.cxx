@@ -128,15 +128,26 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 	char **args = argv+1;
 
 	if (nargs < 2) {
-		cerr << "Syntax: " << args[0] << " [-j] INPUT VAREXP [SELECTION [NENTRIES [STARTENTRY]]]" << endl;
+		cerr << "Syntax: " << args[0] << " [-j] ROOT_FILE/TREENAME VAREXP [SELECTION [NENTRIES [STARTENTRY]]]" << endl;
 		return 1;
 	}
-	TString inFileName(args[0]);
+
+	TString input(args[0]);
+	ssize_t splitPos = input.Last('/');
+	if ((splitPos < 0) || (splitPos >= input.Length()-1)) {
+		cerr << "Error: No tree name specified."  << endl;
+		return 1;
+	}
+	TString inFileName = input(0, splitPos);
+	TString treeName = input(splitPos + 1, input.Length() - splitPos - 1);
+	TChain chain(treeName);
+	chain.Add(inFileName);
+
 	TString varexp(args[1]);
 	const TString selection = (nargs > 2) ? args[2] : "";
 	ssize_t nEntries = (nargs > 3) ? atol(args[3]) : -1;
 	ssize_t startEntry = (nargs > 4) ? atol(args[4]) : 0;
-	Selector::tabulate(inFileName, cout, varexp, selection, nEntries, startEntry);
+	Selector::tabulate(&chain, cout, varexp, selection, nEntries, startEntry);
 }
 
 

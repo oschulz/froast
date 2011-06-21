@@ -56,7 +56,7 @@ public:
 	//     [VALUE,...],
 	//     ...
 	//     ]}
-	static void tabulate(const TString &fileName, ostream &out, const TString &varexp, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
+	static void tabulate(TTree *chain, ostream &out, const TString &varexp, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
 };
 
 

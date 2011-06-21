@@ -166,10 +166,13 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 }
 
 
+
 // Based in part on TTreePlayer::scan (Copyright (C) 1995-2000, Rene Brun
 // and Fons Rademakers)
-void Selector::tabulate(const TString &fileName, ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
-	cerr << TString::Format("Selector::tabulate(\"%s\", ostream, \"%s\", \"%s\")", fileName.Data(), varexp.Data(), selection.Data()) << endl;
+void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	cerr << TString::Format("Selector::tabulate(TChain*, ostream, \"%s\", \"%s\")", varexp.Data(), selection.Data()) << endl;
+
+	ssize_t logEvery = GSettings::get("selector.log.every", 10000);
 
 	const TString FS_TSV = "tsv";
 	const TString FS_JSON = "json";
@@ -177,28 +180,26 @@ void Selector::tabulate(const TString &fileName, ostream &out, const TString &va
 	out.unsetf(ios::fixed | ios::scientific);
 	out << std::setprecision(std::numeric_limits<double>::digits10);
 
-	TPRegexp varexpExpr("^([^(]+)\\((([^>]|>[^>])*)\\)\\s*(>>\\s*(\\w+)\\s*(\\((.*)\\))?)?$");
+	TPRegexp varexpExpr("^(([^>]|>[^>])*)\\s*(>>\\s*(\\w+)\\s*(\\((.*)\\))?)?$");
 	vector<TString> varexpParts;
 	Util::match(varexp, varexpExpr, varexpParts, TString::kBoth);
 
-	if (varexpParts.size() <= 2) throw invalid_argument("Invalid varexp");
-	TString treeName = varexpParts[1];
+	if (varexpParts.size() <= 1) throw invalid_argument("Invalid varexp");
 	vector<TString> functions;
-	Util::split(varexpParts[2], ":", functions, TString::kBoth);
+	Util::split(varexpParts[1], ":", functions, TString::kBoth);
 	TString format = FS_TSV;
-	if (varexpParts.size() > 5) format = varexpParts[5];
+	if (varexpParts.size() > 4) format = varexpParts[4];
 	vector<TString> labels;
-	if (varexpParts.size() > 6) {
-		if (varexpParts.size() > 7) Util::split(varexpParts[7], ":", labels, TString::kBoth);
-		size_t nLabels = labels.size();
+	if (varexpParts.size() > 5) {
+		if (varexpParts.size() > 6) Util::split(varexpParts[6], ":", labels, TString::kBoth);
+		size_t nSpecLabels = labels.size();
 		labels.resize(functions.size());
-		for (size_t i = nLabels; i < labels.size(); ++i)
+		for (size_t i = nSpecLabels; i < labels.size(); ++i)
 			labels[i] = functions[i];
 	}
 	
-	cerr << "Tabulation expression: " << treeName << "(";
+	cerr << "Tabulation expression: ";
 	for (size_t i = 0; i < functions.size(); ++i) cerr << (i>0 ? ":" : "") << functions[i];
-	cerr << ")";
 	cerr << " >> " << format;
 	if (labels.size() > 0) {
 		cerr << "(";
@@ -209,14 +210,11 @@ void Selector::tabulate(const TString &fileName, ostream &out, const TString &va
 
 	const size_t ncols = functions.size();
 
-	TChain chain(treeName);
-	chain.Add(fileName);
-
 	TList tformulas;
 	
 	TTreeFormula *select  = 0;
 	if (selection.Length() > 0) {
-		select = new TTreeFormula("Selection", selection.Data(), &chain);
+		select = new TTreeFormula("Selection", selection.Data(), chain);
 		if (!select) throw invalid_argument("Invalid selection expression");
 		if (!select->GetNdim()) { throw invalid_argument("Invalid selection expression"); }
 		tformulas.Add(select);
@@ -224,7 +222,7 @@ void Selector::tabulate(const TString &fileName, ostream &out, const TString &va
 	
 	vector<TTreeFormula*> colFormulas; colFormulas.reserve(ncols);
 	for (size_t col = 0; col < ncols; ++col) {
-		colFormulas.push_back(new TTreeFormula(TString::Format("col%lli", (long long)(col)).Data(), functions[col].Data(), &chain));
+		colFormulas.push_back(new TTreeFormula(TString::Format("col%lli", (long long)(col)).Data(), functions[col].Data(), chain));
 		tformulas.Add(colFormulas[col]);
 	}
 
@@ -269,13 +267,15 @@ void Selector::tabulate(const TString &fileName, ostream &out, const TString &va
 	Int_t treeNumber = -1;
 	ssize_t entry = startEntry;
 	for (; (nEntries < 0) || entry < startEntry + nEntries; ++entry) {
-		ssize_t entryNumber = chain.GetEntryNumber(entry);
+		if (entry % logEvery == 0) cerr << "Tabulating entry " << entry << " [log every " << logEvery << "]" << endl;
+		
+		ssize_t entryNumber = chain->GetEntryNumber(entry);
 		if (entryNumber < 0) break;
-		ssize_t localEntry = chain.LoadTree(entryNumber);
+		ssize_t localEntry = chain->LoadTree(entryNumber);
 		if (localEntry < 0) break;
-		if (treeNumber != chain.GetTreeNumber()) {
-			cerr << "Tabulating file \"" << chain.GetTree()->GetCurrentFile()->GetName() << "\"" << endl;
-			treeNumber = chain.GetTreeNumber();
+		if (treeNumber != chain->GetTreeNumber()) {
+			cerr << "Tabulating file \"" << chain->GetTree()->GetCurrentFile()->GetName() << "\"" << endl;
+			treeNumber = chain->GetTreeNumber();
 			if (manager) manager->UpdateFormulaLeaves();
 			else for (ssize_t i = 0; i <= tformulas.LastIndex(); ++i) {
 				dynamic_cast<TTreeFormula*>(tformulas.At(i))->UpdateFormulaLeaves();
