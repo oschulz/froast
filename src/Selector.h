@@ -18,6 +18,8 @@
 #ifndef FROAST_SELECTOR_H
 #define FROAST_SELECTOR_H
 
+#include <iostream>
+
 #include <Rtypes.h>
 #include <TString.h>
 #include <TFile.h>
@@ -40,6 +42,21 @@ public:
 	static void mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile = false);
 
 	static void mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile = false);
+
+	// JSON output format
+	//
+	// With column names:
+	//     {"rows":[
+	//     {COLNAME:VALUE,...},
+	//     ...
+	//     ]}
+	//
+	// Without column names:
+	//     {"rows":[
+	//     [VALUE,...],
+	//     ...
+	//     ]}
+	static void tabulate(const TString &fileName, ostream &out, const TString &varexp, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
 };
 
 

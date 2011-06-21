@@ -18,7 +18,7 @@ CXX_PROJECT_INIT
 
 # Checks for dependencies
 
-ROOTSYS_DEPS([], [])
+ROOTSYS_DEPS([], [-lTreePlayer])
 
 CXX_PROJECT_DEPS([])
 

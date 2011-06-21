@@ -18,14 +18,18 @@
 #include "Selector.h"
 
 #include <iostream>
+#include <iomanip>
 #include <sstream>
-#include <cassert>
+#include <limits>
 #include <cassert>
 
 #include <TFile.h>
 #include <TObjArray.h>
 #include <TChainElement.h>
 #include <TPRegexp.h>
+#include <TTreeFormula.h>
+#include <TTreeFormulaManager.h>
+#include <TEntryList.h>
 
 #include "util.h"
 #include "File.h"
@@ -159,6 +163,187 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 		mapSingle(inFileName, mappers, outFileName, (chainEntry > 0) || noRecompile);
 	}
 	cerr << "Selector::map(...) finished" << endl;
+}
+
+
+// Based in part on TTreePlayer::scan (Copyright (C) 1995-2000, Rene Brun
+// and Fons Rademakers)
+void Selector::tabulate(const TString &fileName, ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	cerr << TString::Format("Selector::tabulate(\"%s\", ostream, \"%s\", \"%s\")", fileName.Data(), varexp.Data(), selection.Data()) << endl;
+
+	const TString FS_TSV = "tsv";
+	const TString FS_JSON = "json";
+	
+	out.unsetf(ios::fixed | ios::scientific);
+	out << std::setprecision(std::numeric_limits<double>::digits10);
+
+	TPRegexp varexpExpr("^([^(]+)\\((([^>]|>[^>])*)\\)\\s*(>>\\s*(\\w+)\\s*(\\((.*)\\))?)?$");
+	vector<TString> varexpParts;
+	Util::match(varexp, varexpExpr, varexpParts, TString::kBoth);
+
+	if (varexpParts.size() <= 2) throw invalid_argument("Invalid varexp");
+	TString treeName = varexpParts[1];
+	vector<TString> functions;
+	Util::split(varexpParts[2], ":", functions, TString::kBoth);
+	TString format = FS_TSV;
+	if (varexpParts.size() > 5) format = varexpParts[5];
+	vector<TString> labels;
+	if (varexpParts.size() > 6) {
+		if (varexpParts.size() > 7) Util::split(varexpParts[7], ":", labels, TString::kBoth);
+		size_t nLabels = labels.size();
+		labels.resize(functions.size());
+		for (size_t i = nLabels; i < labels.size(); ++i)
+			labels[i] = functions[i];
+	}
+	
+	cerr << "Tabulation expression: " << treeName << "(";
+	for (size_t i = 0; i < functions.size(); ++i) cerr << (i>0 ? ":" : "") << functions[i];
+	cerr << ")";
+	cerr << " >> " << format;
+	if (labels.size() > 0) {
+		cerr << "(";
+		for (size_t i = 0; i < labels.size(); ++i) cerr << (i>0 ? ":" : "") << labels[i];
+		cerr << ")";
+	}
+	cerr << endl;
+
+	const size_t ncols = functions.size();
+
+	TChain chain(treeName);
+	chain.Add(fileName);
+
+	TList tformulas;
+	
+	TTreeFormula *select  = 0;
+	if (selection.Length() > 0) {
+		select = new TTreeFormula("Selection", selection.Data(), &chain);
+		if (!select) throw invalid_argument("Invalid selection expression");
+		if (!select->GetNdim()) { throw invalid_argument("Invalid selection expression"); }
+		tformulas.Add(select);
+	}
+	
+	vector<TTreeFormula*> colFormulas; colFormulas.reserve(ncols);
+	for (size_t col = 0; col < ncols; ++col) {
+		colFormulas.push_back(new TTreeFormula(TString::Format("col%lli", (long long)(col)).Data(), functions[col].Data(), &chain));
+		tformulas.Add(colFormulas[col]);
+	}
+
+	vector<double> doubleValues(ncols);
+
+	TTreeFormulaManager *manager=0;
+	Bool_t hasArray = false;
+	Bool_t forceDim = false;
+	if (!tformulas.IsEmpty()) {
+		if (select) {
+			if (select->GetManager()->GetMultiplicity() > 0 ) {
+				manager = new TTreeFormulaManager;
+				for (int i=0; i <= tformulas.LastIndex(); ++i)
+					manager->Add(dynamic_cast<TTreeFormula*>(tformulas.At(i)));
+				manager->Sync();
+			}
+		}
+		for (int i = 0; i <= tformulas.LastIndex(); ++i) {
+			TTreeFormula *form = dynamic_cast<TTreeFormula*>(tformulas.At(i));
+			switch( form->GetManager()->GetMultiplicity() ) {
+				case  1: case  2: hasArray = true;
+				case -1: forceDim = true;
+			}
+		}
+	}
+
+	if (format == FS_TSV) {
+		if (!labels.empty()) {
+			out << "# ";
+			for (size_t i = 0; i < labels.size(); ++i) {
+				if (i > 0) out << "\t";
+				out << labels[i];
+			}
+			out << endl;
+		}
+	} else if (format == FS_JSON) {
+		out << "{\"rows\":[" << endl;
+	} else {
+		throw invalid_argument(TString::Format("Unknown tabulation format \"%s\"", format.Data()).Data());
+	}
+	
+	Int_t treeNumber = -1;
+	ssize_t entry = startEntry;
+	for (; (nEntries < 0) || entry < startEntry + nEntries; ++entry) {
+		ssize_t entryNumber = chain.GetEntryNumber(entry);
+		if (entryNumber < 0) break;
+		ssize_t localEntry = chain.LoadTree(entryNumber);
+		if (localEntry < 0) break;
+		if (treeNumber != chain.GetTreeNumber()) {
+			cerr << "Tabulating file \"" << chain.GetTree()->GetCurrentFile()->GetName() << "\"" << endl;
+			treeNumber = chain.GetTreeNumber();
+			if (manager) manager->UpdateFormulaLeaves();
+			else for (ssize_t i = 0; i <= tformulas.LastIndex(); ++i) {
+				dynamic_cast<TTreeFormula*>(tformulas.At(i))->UpdateFormulaLeaves();
+			}
+		}
+
+		int ndata = 1;
+		if (forceDim) {
+			if (manager) ndata = manager->GetNdata(true);
+			else {
+				for (size_t col = 0; col < ncols; ++col) {
+					ndata = std::max(ndata, colFormulas[col]->GetNdata());
+				}
+				if (select && select->GetNdata() == 0) ndata = 0;
+			}
+		}
+
+		bool loaded = false;
+		for (int inst = 0; inst < ndata; ++inst) {
+			if ((select) && (select->EvalInstance(inst) == 0)) continue;
+			if (inst==0) loaded = true;
+			else if (!loaded) {
+				// EvalInstance(0) always needs to be called so that
+				// the proper branches are loaded.
+				for (size_t col = 0; col < ncols; ++col) colFormulas[col]->EvalInstance(0);
+				loaded = true;
+			}
+			if (format == FS_TSV) {
+				for (size_t col = 0; col < ncols; ++col) {
+					if (col > 0) out << "\t";
+					if (colFormulas[col]->IsString()) {
+						if (inst < colFormulas[col]->GetNdata())
+							out << colFormulas[col]->EvalStringInstance(inst);
+						else out << "null";
+					} else {
+						if (inst < colFormulas[col]->GetNdata())
+							out << colFormulas[col]->EvalInstance(inst);
+						else out << "NaN";
+					}
+				}
+				out << endl;
+			} else if (format == FS_JSON){
+				if (entry > startEntry) out << "," << endl;
+				out << (!labels.empty() ? "{" : (ncols > 1 ? "[" : ""));
+				for (size_t col = 0; col < ncols; ++col) {
+					if (col > 0) out << ",";
+					if (!labels.empty()) out << "\"" << labels[col] << "\":";
+					if (colFormulas[col]->IsString()) {
+						if (inst < colFormulas[col]->GetNdata())
+							out << "\"" << colFormulas[col]->EvalStringInstance(inst) << "\"";
+						else out << "null";
+					} else {
+						if (inst < colFormulas[col]->GetNdata())
+							out << colFormulas[col]->EvalInstance(inst);
+						else out << "NaN";
+					}
+				}
+				out << (!labels.empty() ? "}" : (ncols > 1 ? "]" : ""));
+			}
+		}
+	}
+
+	if (format == FS_JSON) {
+		if (entry > startEntry) out << "," << endl;
+		out << "]}" << endl;
+	}
+	
+	tformulas.Clear();
 }
 
 

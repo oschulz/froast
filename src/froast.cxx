@@ -123,6 +123,23 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 }
 
 
+int tabulate(int argc, char *argv[], char *envp[]) {
+	int nargs = argc-1;
+	char **args = argv+1;
+
+	if (nargs < 2) {
+		cerr << "Syntax: " << args[0] << " [-j] INPUT VAREXP [SELECTION [NENTRIES [STARTENTRY]]]" << endl;
+		return 1;
+	}
+	TString inFileName(args[0]);
+	TString varexp(args[1]);
+	const TString selection = (nargs > 2) ? args[2] : "";
+	ssize_t nEntries = (nargs > 3) ? atol(args[3]) : -1;
+	ssize_t startEntry = (nargs > 4) ? atol(args[4]) : 0;
+	Selector::tabulate(inFileName, cout, varexp, selection, nEntries, startEntry);
+}
+
+
 int main(int argc, char *argv[], char *envp[]) {
 	try {
 		// Have to tell ROOT to load vector dlls, otherwise ROOT will produce
@@ -140,6 +157,7 @@ int main(int argc, char *argv[], char *envp[]) {
 			cerr << "  settings" << endl;
 			cerr << "  map-single" << endl;
 			cerr << "  map-multi" << endl;
+			cerr << "  tabulate" << endl;
 			return 1;
 		}
 		
@@ -154,6 +172,7 @@ int main(int argc, char *argv[], char *envp[]) {
 		if (cmd == "settings") return settings(cmd_argc, cmd_argv, envp);
 		else if (cmd == "map-single") return map_single(cmd_argc, cmd_argv, envp);
 		else if (cmd == "map-multi") return map_multi(cmd_argc, cmd_argv, envp);
+		else if (cmd == "tabulate") return tabulate(cmd_argc, cmd_argv, envp);
 		else {
 			cerr << "ERROR: " << progName << " does not support command \"" << cmd << "\"" << endl;
 		}
