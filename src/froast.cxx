@@ -148,6 +148,8 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 	ssize_t nEntries = (nargs > 3) ? atol(args[3]) : -1;
 	ssize_t startEntry = (nargs > 4) ? atol(args[4]) : 0;
 	Selector::tabulate(&chain, cout, varexp, selection, nEntries, startEntry);
+	
+	return 0;
 }
 
 
