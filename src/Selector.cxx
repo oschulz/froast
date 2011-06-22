@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <sstream>
 #include <limits>
+#include <cstdlib>
 #include <cassert>
 
 #include <TFile.h>
@@ -99,46 +100,96 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 	TFile outFile(outFileName.Data(), "recreate");
 	outFile.SetCompressionLevel(GSettings().get("froast.tfile.compression.level", 1));
 
-	TPRegexp mapperSpecExpr("^(.*)\\((.*)\\)$");
+	TPRegexp mapperSpecExpr("^([^(]*)\\((.*)\\)$");
 	TPRegexp xxExp("\\+\\+$");
 
-	TObjArray* mapperNames = mappers.Tokenize(",");
-	for (int mapperEntry = 0; mapperEntry < mapperNames->GetEntriesFast(); ++mapperEntry) {
-		TString mapper = dynamic_cast<TObjString*>(mapperNames->At(mapperEntry))->GetString().Strip(TString::kBoth);
-		TObjArray* matches = mapperSpecExpr.MatchS(mapper);
-		if (matches->GetEntriesFast() == 3) {
-			TString fctName = dynamic_cast<TObjString*>(matches->At(1))->GetString();
-			if (noRecompile) xxExp.Substitute(fctName, "+"); 
-			TString objName = dynamic_cast<TObjString*>(matches->At(2))->GetString();
-			assert ((fctName != 0) && (objName != 0));
-			delete matches;
-			
-			cerr << "Applying " << fctName << "(" << objName << ")" << endl;
-			
-			TObject *inObj; inFile.GetObject(objName.Data(), inObj);
-			if (inObj != 0) {
-				TTree *inTree = dynamic_cast<TTree*>(inObj);
-				if (inTree != 0) {
-					if (fctName == "copy") {
-						TTree *copied = inTree->CloneTree();
-						copied->Write();
-					} else {
-						TSelector *sel = TSelector::GetSelector(fctName.Data());
-						if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
-						inTree->Process(sel);
-						delete sel;
+	vector<TString> mapperSpecs; Util::split(mappers, ";", mapperSpecs, TString::kBoth);
+	for (int m = 0; m < mapperSpecs.size(); ++m) {
+		vector<TString> mapperFctArgs; Util::match(mapperSpecs[m], mapperSpecExpr, mapperFctArgs, TString::kBoth);
+		if (mapperFctArgs.size() != 3) throw invalid_argument(string("Invalid mapper specification: \"") + mapperSpecs[m].Data() + "\"");
+		TString fctName = mapperFctArgs[1];
+		if (noRecompile) xxExp.Substitute(fctName, "+"); 
+		vector<TString> fctArgs; Util::split(mapperFctArgs[2], ",", fctArgs, TString::kBoth);
+
+		if (fctArgs.size() < 1) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting at least one.");
+		TString objName = fctArgs[0];
+		
+		cerr << "Applying " << fctName << "(";
+		for (size_t i = 0; i < fctArgs.size(); ++i) cerr << (i>0 ? "," : "") << fctArgs[i];
+		cerr << ")" << endl;
+		
+		TObject *inObj; inFile.GetObject(objName.Data(), inObj);
+		if (inObj == 0) throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
+
+		TTree *inTree = dynamic_cast<TTree*>(inObj);
+		if (inTree != 0) {
+			if (fctName == "copy") {
+				// copy(tree, branches, selection, nentries, fistentry)
+				if (fctArgs.size() <= 1) {
+					TTree *copied = inTree->CloneTree();
+					copied->Write();
+				} else {
+					TString branchSpec = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+					TString selection = (fctArgs.size() > 2) ? fctArgs[2] : TString("");
+					Long64_t nEntries = (fctArgs.size() > 3) ? atol(fctArgs[3]) : numeric_limits<Long64_t>::max();
+					Long64_t startEntry = (fctArgs.size() > 4) ? atol(fctArgs[4]) : 0;
+					if (fctArgs.size() > 5) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 5.");
+
+					TPRegexp branchSpecExpr("^(([^>]|>[^>])*)?\\s*(>>\\s*(\\w+))?$");
+					vector<TString> branchSpecParts;
+					Util::match(branchSpec, branchSpecExpr, branchSpecParts, TString::kBoth);
+
+					vector<TString> branches;
+					if (branchSpecParts.size() > 1) Util::split(branchSpecParts[1], ":", branches, TString::kBoth);
+					TString outTreeName = (branchSpecParts.size() > 4) ? branchSpecParts[4] : TString(inTree->GetName());
+
+					for (size_t i = 0; i < branches.size(); ++i) if (branches[i].Length() > 0) {
+						TString &b = branches[i];
+						if (b[0] == '^') {
+							if (i == 0) {
+								cerr << "Enabling all branches" << endl;
+								inTree->SetBranchStatus("*", 1);
+							}
+							TString bDis = b(1, b.Length()-1).Data();
+							cerr << "Disabling branch \"" << bDis << "\"" << endl;
+							inTree->SetBranchStatus(bDis.Data(), 0);
+						} else {
+							if (i == 0) {
+								cerr << "Disabling all branches" << endl;
+								inTree->SetBranchStatus("*", 0);
+							}
+							cerr << "Enabling branch \"" << b << "\"" << endl;
+							inTree->SetBranchStatus(b.Data(), 1);
+						}
 					}
-				} else throw invalid_argument(string("Objects of type ") + inObj->Class()->GetName() + " not supported yet");
+					
+					TTree* outTree = inTree->CopyTree(selection.Data(), "", nEntries, startEntry);
+					if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
+				}
+			} else if (fctName == "draw") {
+				// draw(tree, varexp, selection, option, nentries, fistentry)
+				TString varexp = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+				TString selection = (fctArgs.size() > 2) ? fctArgs[2] : TString("");
+				TString option = (fctArgs.size() > 3) ? fctArgs[3] : TString("");
+				Long64_t nEntries = (fctArgs.size() > 4) ? atol(fctArgs[4]) : numeric_limits<Long64_t>::max();
+				Long64_t startEntry = (fctArgs.size() > 5) ? atol(fctArgs[5]) : 0;
+				if (fctArgs.size() > 6) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 6.");
+
+				inTree->Draw(varexp.Data(), selection.Data(), (TString("goff ")+option).Data(), nEntries, startEntry);
 			} else {
-				delete matches;
-				throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
+				// selector(tree, option, nentries, fistentry)
+				TString option = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+				Long64_t nEntries = (fctArgs.size() > 2) ? atol(fctArgs[2]) : numeric_limits<Long64_t>::max();
+				Long64_t startEntry = (fctArgs.size() > 3) ? atol(fctArgs[3]) : 0;
+				if (fctArgs.size() > 4) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 4.");
+
+				TSelector *sel = TSelector::GetSelector(fctName.Data());
+				if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
+				inTree->Process(sel, option.Data(), nEntries, startEntry);
+				delete sel;
 			}
-		} else {
-			delete matches;
-			throw invalid_argument(string("Invalid mapper specification: \"") + mapper.Data() + "\"");
-		}
+		} else throw invalid_argument(string("Objects of type ") + inObj->Class()->GetName() + " not supported yet");
 	}
-	delete mapperNames;
 	
 	Settings::global().writeToGDirectory();
 	outFile.Write();
