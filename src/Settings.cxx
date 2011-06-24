@@ -30,6 +30,7 @@
 #include <TObjArray.h>
 #include <TMap.h>
 #include <TParameter.h>
+#include <TPRegexp.h>
 
 #include "util.h"
 #include "JSON.h"
@@ -45,7 +46,22 @@ namespace froast {
 
 Settings Settings::m_global(gEnv, false);
 	
-	
+TString Settings::idx(const TString &setting, size_t i) {
+	TPRegexp wildcardExpr("[*]");
+	TString result = setting;
+	wildcardExpr.Substitute(result, TString::Format("%lli", (long long)i), "", 0, 1);
+	return result;
+}
+
+TString Settings::idx(const TString &setting, size_t i, size_t j) {
+	TPRegexp wildcardExpr("[*]");
+	TString result = setting;
+	wildcardExpr.Substitute(result, TString::Format("%lli", (long long)i), "", 0, 1);
+	wildcardExpr.Substitute(result, TString::Format("%lli", (long long)j), "", 0, 1);
+	return result;
+}
+
+
 bool Settings::get(const char* name, bool dflt, bool saveDflt) {
 	bool value = tenv()->GetValue(name, dflt) > 0;
 	if (saveDflt && !tenv()->Defined(name)) tenv()->SetValue(name, value);

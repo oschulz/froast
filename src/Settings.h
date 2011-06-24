@@ -18,6 +18,7 @@
 #ifndef FROAST_SETTINGS_H
 #define FROAST_SETTINGS_H
 
+#include <vector>
 #include <stdint.h>
 
 #include <TString.h>
@@ -38,6 +39,9 @@ protected:
 	
 public:
 	static Settings &global() { return m_global; }
+
+	static TString idx(const TString &setting, size_t i);
+	static TString idx(const TString &setting, size_t i, size_t j);
 
 	bool get(const char* name, bool dflt, bool saveDflt = true);
 	int32_t get(const char* name, int32_t dflt, bool saveDflt = true);
