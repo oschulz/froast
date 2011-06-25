@@ -30,6 +30,26 @@
 namespace froast {
 
 
+class Param {
+protected:
+	TString m_name;
+
+public:
+	operator const TString& () const { return m_name; }
+
+	operator const char* () const { return m_name.Data(); }
+
+	operator std::string () const { return std::string(m_name.Data()); }
+	std::string str() const { return std::string(m_name.Data()); }
+
+	Param operator()(int32_t idx) const;
+	
+	Param();
+	Param(const TString &pname);
+	virtual ~Param();
+};
+
+
 class Settings {
 protected:
 	static Settings m_global;
@@ -40,13 +60,12 @@ protected:
 public:
 	static Settings &global() { return m_global; }
 
-	static TString idx(const TString &setting, size_t i);
-	static TString idx(const TString &setting, size_t i, size_t j);
+	void getInstances(const TString &pattern, std::vector<int32_t> &instances);
 
-	bool get(const char* name, bool dflt, bool saveDflt = true);
-	int32_t get(const char* name, int32_t dflt, bool saveDflt = true);
-	double get(const char* name, double dflt, bool saveDflt = true);
-	const char* get(const char* name, const char* dflt, bool saveDflt = true);
+	bool operator()(const char* name, bool dflt, bool saveDflt = true);
+	int32_t operator()(const char* name, int32_t dflt, bool saveDflt = true);
+	double operator()(const char* name, double dflt, bool saveDflt = true);
+	const char* operator()(const char* name, const char* dflt, bool saveDflt = true);
 	
 	const TEnv* tenv() const { return m_env; }
 	TEnv* tenv() { return m_env; }
@@ -71,16 +90,19 @@ public:
 	Settings(TEnv* env, bool own = false);
 
 	Settings();
+	virtual ~Settings();
 };
 
 
 
 class GSettings {
 public:
-	static bool get(const char* name, bool dflt, bool saveDflt = true) { return Settings::global().get(name, dflt, saveDflt); }
-	static int32_t get(const char* name, int32_t dflt, bool saveDflt = true) { return Settings::global().get(name, dflt, saveDflt); }
-	static double get(const char* name, double dflt, bool saveDflt = true) { return Settings::global().get(name, dflt, saveDflt); }
-	static const char* get(const char* name, const char* dflt, bool saveDflt = true) { return Settings::global().get(name, dflt, saveDflt); }
+	static void getInstances(const TString &pattern, std::vector<int32_t> &instances) { Settings::global().getInstances(pattern, instances); }
+
+	static bool get(const char* name, bool dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
+	static int32_t get(const char* name, int32_t dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
+	static double get(const char* name, double dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
+	static const char* get(const char* name, const char* dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
 };
 
 
@@ -88,8 +110,9 @@ public:
 
 
 #ifdef __CINT__
-#pragma link C++ class froast::Settings+;
-#pragma link C++ class froast::GSettings+;
+#pragma link C++ class froast::Param-;
+#pragma link C++ class froast::Settings-;
+#pragma link C++ class froast::GSettings-;
 #endif
 
 #endif // FROAST_SETTINGS_H
