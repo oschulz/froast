@@ -40,6 +40,24 @@
 using namespace std;
 
 
+namespace {
+
+class TTreeCurrentFile : public TTreeFormula {
+protected:
+	virtual Bool_t IsString(Int_t oper) const { return true; }
+
+public:
+	virtual const char *EvalStringInstance(Int_t i = 0)
+		{ return fTree->GetTree()->GetCurrentFile()->GetName(); }
+
+	TTreeCurrentFile() : TTreeFormula() {}
+	TTreeCurrentFile(const char *name, TTree *tree) : TTreeFormula(name, "1.", tree) {}
+};
+
+} // namespace
+
+
+
 namespace froast {
 
 
@@ -278,7 +296,10 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 	
 	vector<TTreeFormula*> colFormulas; colFormulas.reserve(ncols);
 	for (size_t col = 0; col < ncols; ++col) {
-		colFormulas.push_back(new TTreeFormula(TString::Format("col%lli", (long long)(col)).Data(), functions[col].Data(), chain));
+		const TString &formula = functions[col];
+		const TString name = TString::Format("col%lli", (long long)(col));
+		if (formula == "File$") colFormulas.push_back(new TTreeCurrentFile(name.Data(), chain));
+		else colFormulas.push_back(new TTreeFormula(name.Data(), formula.Data(), chain));
 		tformulas.Add(colFormulas[col]);
 	}
 
