@@ -27,6 +27,7 @@
 #include <Rtypes.h>
 #include <TString.h>
 #include <TTree.h>
+#include <TUUID.h>
 
 
 namespace froast {
@@ -74,6 +75,9 @@ public:
 		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
 	}
 	
+	A& content() { return value; }
+	const A& content() const { return value; }
+
 	A& operator()() { return value; }
 	const A& operator()() const { return value; }
 
@@ -110,6 +114,9 @@ public:
 		}
 		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
 	}
+
+	A& content() { return *value; }
+	const A& content() const { return *value; }
 	
 	A& operator=(const A &v) { return (*value) = v; }
 	
@@ -127,6 +134,7 @@ public:
 };
 
 typedef	ObjectBranch<TString> TStringBranch;
+typedef	ObjectBranch<TUUID> TUUIDBranch;
 
 
 template<typename A> class VectorBranch: public ManagedBranch {
@@ -146,6 +154,9 @@ public:
 		}
 		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
 	}
+
+	std::vector<A>& content() { return *value; }
+	const std::vector<A>& content() const { return *value; }
 	
 	bool empty() { return value->empty(); }
 	size_t size() { return value->size(); }
@@ -210,6 +221,8 @@ public:
 
 #pragma link C++ class froast::ObjectBranch<TString>-;
 #pragma link C++ typedef froast::TStringBranch;
+#pragma link C++ class froast::ObjectBranch<TUUID>-;
+#pragma link C++ typedef froast::TUUIDBranch;
 
 #pragma link C++ class froast::VectorBranch<char>-;
 // #pragma link C++ class froast::VectorBranch<bool>-;
