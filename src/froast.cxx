@@ -32,12 +32,32 @@
 #include "Settings.h"
 #include "JSON.h"
 
+
+/*!	\mainpage	Programme to evaluate CPG pulse shape data
+	*
+	* Syntax: froast COMMAND ... \n
+	* Commands: 
+	*	- settings [-j] INPUTFILE
+	*	- map-single INPUT_FILE MAPPERS OUTPUTFILE
+	*	- map-multi MAPPER OUTPUTFILE_TAG INPUTFILES
+	*	- tabulate ROOT_FILE/TREENAME VAREXP [SELECTION [NENTRIES [STARTENTRY]]]
+	*
+	* With the settings option the settings from processed ROOT files or .rootrc can be read
+	* out and with the -j option converted to json (output on the screen). \n
+	* With the map-multi option one input file can be processed. See froast::Selector::mapSingle for
+	* more information on the input parameters. \n
+	* With the map-multi option several input files can be processed. See froast::Selector::mapSingle for
+	* more information on the input parameters. \n
+*/
+
 using namespace std;
 using namespace froast;
 
 
 
 int settings(int argc, char *argv[], char *envp[]) {
+	
+	
 	int nargs = argc-1;
 	char **args = argv+1;
 
@@ -116,6 +136,9 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 	string mappers = argv[1];
 	string tag = argv[2];
 	for (size_t arg = firstInputArg; arg < argc; ++arg) {
+		// -> inputfilename(s), mappers, filename extension tag, bool noRecompile
+		// By default the selector is compiled (++ ROOT compile option).
+		// If there are more than one inputfile, the selector is not recompiled
 		Selector::mapMulti(argv[arg], mappers, tag, arg > firstInputArg);
 	}
 
