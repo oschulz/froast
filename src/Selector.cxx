@@ -77,12 +77,17 @@ void Selector::copyObject(TDirectory *tdir, const TString &objName) {
 
 
 void Selector::mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
+	
+	///	For the syntax of the selector expression see masSingle
+
 	TObjArray *chainElems = chain->GetListOfFiles();
 	for (int chainEntry = 0; chainEntry < chainElems->GetEntriesFast(); ++chainEntry) {
 		TChainElement *e = dynamic_cast<TChainElement*>(chainElems->At(chainEntry));
 		string treeName = e->GetName();
 		string inFileName = e->GetTitle();
 
+		///	The name of the output files  is created from the filenames
+		///	of the TTrees concatenated in the TChain.
 		string outFileName = (File(inFileName).base() % tag.Data()).path();
 		cerr << "Mapping " << inFileName << ":" << treeName << " to " << outFileName << endl;
 
@@ -119,18 +124,27 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 	outFile.SetCompressionLevel(GSettings().get("froast.tfile.compression.level", 1));
 
 	TPRegexp mapperSpecExpr("^([^(]*)\\((.*)\\)$");
-	TPRegexp xxExp("\\+\\+$");
+	TPRegexp xxExp("\\+\\+$"); // selecor compile option
 
-	vector<TString> mapperSpecs; Util::split(mappers, ";", mapperSpecs, TString::kBoth);
+	vector<TString> mapperSpecs; // mapper expressions
+	/// Mappers (selectors, draw/scan options) are separated by ";"
+	Util::split(mappers, ";", mapperSpecs, TString::kBoth);
+	
 	for (int m = 0; m < mapperSpecs.size(); ++m) {
-		vector<TString> mapperFctArgs; Util::match(mapperSpecs[m], mapperSpecExpr, mapperFctArgs, TString::kBoth);
+		
+		vector<TString> mapperFctArgs; 
+		Util::match(mapperSpecs[m], mapperSpecExpr, mapperFctArgs, TString::kBoth);
+		// mapperFctArgs[0]: Full string
+		// mapperFctArgs[1]: selector name
+		// mapperFctArgs[2]: name of TTree(s) / TChain(s)
 		if (mapperFctArgs.size() != 3) throw invalid_argument(string("Invalid mapper specification: \"") + mapperSpecs[m].Data() + "\"");
 		TString fctName = mapperFctArgs[1];
 		if (noRecompile) xxExp.Substitute(fctName, "+"); 
+		///	Arguments for the mappers (given in brakets after mapper name) are separated by "," character.
 		vector<TString> fctArgs; Util::split(mapperFctArgs[2], ",", fctArgs, TString::kBoth);
 
 		if (fctArgs.size() < 1) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting at least one.");
-		TString objName = fctArgs[0];
+		TString objName = fctArgs[0]; // name of the TTree to be read in
 		
 		cerr << "Applying " << fctName << "(";
 		for (size_t i = 0; i < fctArgs.size(); ++i) cerr << (i>0 ? "," : "") << fctArgs[i];
@@ -142,14 +156,23 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 		TTree *inTree = dynamic_cast<TTree*>(inObj);
 		if (inTree != 0) {
 			if (fctName == "copy") {
-				// copy(tree, branches, selection, nentries, fistentry)
+				///	When choosing the "copy" argument/mapper the selected TTree (or subbranches) will be
+				///	copied to a new file. Up to 5 arguments are allowed, example \n
+				///	copy(tree, branches, selection, nentries, fistentry)
 				if (fctArgs.size() <= 1) {
 					TTree *copied = inTree->CloneTree();
 					copied->Write();
 				} else {
+					///	The ordering of the arguments to the mapper are expected to be
+					///	<ol>
+					///	<li> Name of the TTree to be processed
+					///	<li> Specifications of branches (optional)
 					TString branchSpec = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+					///	<li> A selection expression (optional). By default all branches will be enabled.
 					TString selection = (fctArgs.size() > 2) ? fctArgs[2] : TString("");
+					///	<li> Number of entries to process (optional)
 					Long64_t nEntries = (fctArgs.size() > 3) ? atol(fctArgs[3]) : numeric_limits<Long64_t>::max();
+					///	<li> Startnumber of the first entry to be processed (optional) </ol>
 					Long64_t startEntry = (fctArgs.size() > 4) ? atol(fctArgs[4]) : 0;
 					if (fctArgs.size() > 5) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 5.");
 
@@ -158,6 +181,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					Util::match(branchSpec, branchSpecExpr, branchSpecParts, TString::kBoth);
 
 					vector<TString> branches;
+					///	The branch specifications are separated by ":" sign
 					if (branchSpecParts.size() > 1) Util::split(branchSpecParts[1], ":", branches, TString::kBoth);
 					TString outTreeName = (branchSpecParts.size() > 4) ? branchSpecParts[4] : TString(inTree->GetName());
 
@@ -185,19 +209,35 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
 				}
 			} else if (fctName == "draw") {
-				// draw(tree, varexp, selection, option, nentries, fistentry)
+				///	With the "draw" argument it is possible to access the
+				///	TTree draw method. The options are the same as for
+				///	the TTree draw method: \n
+				/// 	draw(tree, varexp, selection, option, nentries, fistentry) 
+				///	<ol>
+				///	<li> Name of the tree to draw from
+				///	<li> Formula / expression / data to draw
 				TString varexp = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+				///	<li> Cut criteria / selection of entries (optional)
 				TString selection = (fctArgs.size() > 2) ? fctArgs[2] : TString("");
+				///	<li> Draw option(s) (optional)
 				TString option = (fctArgs.size() > 3) ? fctArgs[3] : TString("");
+				///	<li> Number of entries to process (optional)
 				Long64_t nEntries = (fctArgs.size() > 4) ? atol(fctArgs[4]) : numeric_limits<Long64_t>::max();
+				///	<li> First entry to process (optional) </ol>
 				Long64_t startEntry = (fctArgs.size() > 5) ? atol(fctArgs[5]) : 0;
 				if (fctArgs.size() > 6) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 6.");
 
 				inTree->Draw(varexp.Data(), selection.Data(), (TString("goff ")+option).Data(), nEntries, startEntry);
 			} else {
-				// selector(tree, option, nentries, fistentry)
+				///	If as argument / mapper the name of a selector is given the syntax is \n
+				/// 	selector(tree, option, nentries, fistentry) \n
+				///	The parameters are the typical parameters of a TTree call to a TSelector <ol>
+				///	<li> Name of the TTree to process
+				///	<li> option (?) (optional)
 				TString option = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+				///	<li> Number of entries to process (optional)
 				Long64_t nEntries = (fctArgs.size() > 2) ? atol(fctArgs[2]) : numeric_limits<Long64_t>::max();
+				///	<li> Number of first entry to process (optional) </ol>
 				Long64_t startEntry = (fctArgs.size() > 3) ? atol(fctArgs[3]) : 0;
 				if (fctArgs.size() > 4) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 4.");
 
@@ -217,7 +257,10 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 
 
 void Selector::mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile) {
+
 	cerr << TString::Format("Selector::map(%s, %s, %s)", fileName.Data(), mappers.Data(), tag.Data()) << endl;
+	
+	///	For description of mappers see Selector::mapSingle
 
 	TChain chain("");
 	chain.Add(fileName.Data());
