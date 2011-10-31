@@ -30,6 +30,7 @@ namespace froast {
 void Util::copy(const TCollection *from, std::vector<TString> &to)
 	{ copy(from, to, TString::EStripType(-1)); }
 
+
 void Util::copy(const TCollection *from, std::vector<TString> &to, TString::EStripType strip) {
 	int n = from->GetEntries();
 	to.resize(n);
@@ -39,7 +40,7 @@ void Util::copy(const TCollection *from, std::vector<TString> &to, TString::EStr
 		if (entry != 0) {
 			const TObjString *s = dynamic_cast<TObjString*>(entry);
 			if (s == 0) throw invalid_argument("TObjArray contains an element which is not of expected type TString.");
-			if (int(strip) >= 0) to[i] = s->GetString().Strip(TString::kBoth);
+			if (int(strip) >= 0) to[i] = s->GetString().Strip(TString::kBoth); // strip blanks at beginning and / or end of string
 			else to[i] = s->GetString();
 		} else {
 			to[i] = TString("");
