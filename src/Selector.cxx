@@ -250,7 +250,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 	}
 	
 	Settings::global().writeToGDirectory();
-	outFile.Write();
+	outFile.Write(0,TObject::kOverwrite);
 	outFile.Close();
 	inFile.Close();
 }
