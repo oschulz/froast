@@ -154,6 +154,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 		if (inObj == 0) throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
 
 		TTree *inTree = dynamic_cast<TTree*>(inObj);
+		inTree->ResetBranchAddresses(); // in case they have been in use previously
 		if (inTree != 0) {
 			if (fctName == "copy") {
 				///	When choosing the "copy" argument/mapper the selected TTree (or subbranches) will be
@@ -207,6 +208,8 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					
 					TTree* outTree = inTree->CopyTree(selection.Data(), "", nEntries, startEntry);
 					if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
+					outTree->Write();
+					inTree->SetBranchStatus("*", 1); // reactivate branches for later use
 				}
 			} else if (fctName == "draw") {
 				///	With the "draw" argument it is possible to access the
