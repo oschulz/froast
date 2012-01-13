@@ -63,6 +63,13 @@ public:
 	///	@param	noRecompile	Option to suppress forced recompilation of selector (by default a recompilation of the selector is forced)
 	static void mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile = false);
 
+	///	@brief	Apply mapper (selector or other option) to TTrees in several files and write results to one single output file
+	///	@param	fileName	Names of the input ROOT file (space separated);
+	///	@param	mappers	Name(s) of the selector(s) or option to draw or scan a TTree
+	///	@param	outFileName	Name of the output file
+	///	@param	noRecompile	Option to suppress forced recompilation of selector (by default a recompilation of the selector is forced)
+	static void reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile = false);
+
 	// JSON output format
 	//
 	// With column names:

@@ -44,7 +44,7 @@
 	*
 	* With the settings option the settings from processed ROOT files or .rootrc can be read
 	* out and with the -j option converted to json (output on the screen). \n
-	* With the map-multi option one input file can be processed. See froast::Selector::mapSingle for
+	* With the map-single option one input file can be processed. See froast::Selector::mapSingle for
 	* more information on the input parameters. \n
 	* With the map-multi option several input files can be processed. See froast::Selector::mapSingle for
 	* more information on the input parameters. \n
@@ -145,6 +145,24 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 	return 0;
 }
 
+int reduce(int argc, char *argv[], char *envp[]) {
+	const size_t firstInputArg = 3;
+	if (argc < firstInputArg) {
+		cerr << "Syntax: " << argv[0] << " MAPPERS OUTPUT_FILE [INPUT]..." << endl;
+		return 1;
+	}
+	string mappers = argv[1];
+	string outFileName = argv[2];
+  string inFiles = argv[firstInputArg];
+	for (size_t arg = firstInputArg+1; arg < argc; ++arg) {
+    inFiles+=" ";
+    inFiles+=argv[arg];
+	}
+//  I still need to write this
+//  Selector::reduce(argv[arg], mappers, outFileName);
+
+	return 0;
+}
 
 int tabulate(int argc, char *argv[], char *envp[]) {
 	int nargs = argc-1;
@@ -193,6 +211,7 @@ int main(int argc, char *argv[], char *envp[]) {
 			cerr << "  settings" << endl;
 			cerr << "  map-single" << endl;
 			cerr << "  map-multi" << endl;
+      cerr << "  reduce" << endl;
 			cerr << "  tabulate" << endl;
 			return 1;
 		}
@@ -200,21 +219,16 @@ int main(int argc, char *argv[], char *envp[]) {
 		string cmd(argv[1]);
 
 		int cmd_argc = argc - 1;
-		char **cmd_argv = new char*[cmd_argc];
-		cmd_argv[0] = strdup((progName + " " + cmd).c_str());
-		for (int i = 1; i < cmd_argc; ++i) cmd_argv[i] = strdup(argv[i+1]);
-		cmd_argv = argv + 1;
+		char **cmd_argv = argv + 1;
 
 		if (cmd == "settings") return settings(cmd_argc, cmd_argv, envp);
 		else if (cmd == "map-single") return map_single(cmd_argc, cmd_argv, envp);
 		else if (cmd == "map-multi") return map_multi(cmd_argc, cmd_argv, envp);
+		else if (cmd == "reduce") return reduce(cmd_argc, cmd_argv, envp);
 		else if (cmd == "tabulate") return tabulate(cmd_argc, cmd_argv, envp);
 		else {
 			cerr << "ERROR: " << progName << " does not support command \"" << cmd << "\"" << endl;
 		}
-		
-		for (int i = 0; i < cmd_argc; ++i) ::free(cmd_argv[i]);
-		delete [] cmd_argv;
 	}
 	catch(std::exception &e) {
 		cerr << endl << endl << "Exception: " << e.what() << endl << endl;

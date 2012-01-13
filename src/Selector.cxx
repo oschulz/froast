@@ -280,6 +280,10 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 	cerr << "Selector::map(...) finished" << endl;
 }
 
+void Selector::reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile) {
+	cerr << TString::Format("Selector::reduce(%s, %s, %s)", inFileNames.Data(), mappers.Data(), outFileName.Data()) << endl;
+	cerr << "Selector::reduce(...) finished" << endl;
+}
 
 
 // Based in part on TTreePlayer::scan (Copyright (C) 1995-2000, Rene Brun
