@@ -153,14 +153,12 @@ int reduce(int argc, char *argv[], char *envp[]) {
 	}
 	string mappers = argv[1];
 	string outFileName = argv[2];
-  string inFiles = argv[firstInputArg];
+	string inFiles = argv[firstInputArg];
 	for (size_t arg = firstInputArg+1; arg < argc; ++arg) {
-    inFiles+=" ";
-    inFiles+=argv[arg];
+		inFiles+=" ";
+		inFiles+=argv[arg];
 	}
-//  I still need to write this
-//  Selector::reduce(argv[arg], mappers, outFileName);
-
+	Selector::reduce(inFiles, mappers, outFileName);
 	return 0;
 }
 
@@ -211,7 +209,7 @@ int main(int argc, char *argv[], char *envp[]) {
 			cerr << "  settings" << endl;
 			cerr << "  map-single" << endl;
 			cerr << "  map-multi" << endl;
-      cerr << "  reduce" << endl;
+		  cerr << "  reduce" << endl;
 			cerr << "  tabulate" << endl;
 			return 1;
 		}
