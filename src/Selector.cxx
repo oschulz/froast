@@ -122,6 +122,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 	TFile inFile(inFileName.Data(), "read");
 	TFile outFile(outFileName.Data(), "recreate");
 	outFile.SetCompressionLevel(GSettings().get("froast.tfile.compression.level", 1));
+  Settings::global().read(&inFile);
 
 	TPRegexp mapperSpecExpr("^([^(]*)\\((.*)\\)$");
 	TPRegexp xxExp("\\+\\+$"); // selecor compile option
@@ -314,73 +315,74 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 		TChain inChain(objName);
 		inChain.ResetBranchAddresses(); // may not do anything
 		for (vector<TString>::iterator f=inFileList.begin();f!=inFileList.end();f++) inChain.Add(*f);
+    if (inChain.GetListOfFiles()->GetEntries()==0)
+		  throw runtime_error(string("No files found to match ") + (const char*)inFileNames);
 		if (inChain.GetEntry(0)==0)
 		  throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
-		else {
-			if (fctName == "copy")
-				if (fctArgs.size() <= 1) {
-					TTree *copied = inChain.CloneTree();
-					copied->Write();
-				} else {
-					///	The ordering of the arguments to the mapper are expected to be
-					///	<ol>
-					///	<li> Name of the TTree to be processed
-					///	<li> Specifications of branches (optional)
-					TString branchSpec = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
-					///	<li> A selection expression (optional). By default all branches will be enabled.
-					TString selection = (fctArgs.size() > 2) ? fctArgs[2] : TString("");
-					///	<li> Number of entries to process (optional)
-					Long64_t nEntries = (fctArgs.size() > 3) ? atol(fctArgs[3]) : numeric_limits<Long64_t>::max();
-					///	<li> Startnumber of the first entry to be processed (optional) </ol>
-					Long64_t startEntry = (fctArgs.size() > 4) ? atol(fctArgs[4]) : 0;
-					if (fctArgs.size() > 5) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 5.");
+    Settings::global().read(inChain.GetFile());
+    if (fctName == "copy")
+      if (fctArgs.size() <= 1) {
+        TTree *copied = inChain.CloneTree();
+        copied->Write();
+      } else {
+        ///	The ordering of the arguments to the mapper are expected to be
+        ///	<ol>
+        ///	<li> Name of the TTree to be processed
+        ///	<li> Specifications of branches (optional)
+        TString branchSpec = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+        ///	<li> A selection expression (optional). By default all branches will be enabled.
+        TString selection = (fctArgs.size() > 2) ? fctArgs[2] : TString("");
+        ///	<li> Number of entries to process (optional)
+        Long64_t nEntries = (fctArgs.size() > 3) ? atol(fctArgs[3]) : numeric_limits<Long64_t>::max();
+        ///	<li> Startnumber of the first entry to be processed (optional) </ol>
+        Long64_t startEntry = (fctArgs.size() > 4) ? atol(fctArgs[4]) : 0;
+        if (fctArgs.size() > 5) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 5.");
 
-					TPRegexp branchSpecExpr("^(([^>]|>[^>])*)?\\s*(>>\\s*(\\w+))?$");
-					vector<TString> branchSpecParts;
-					Util::match(branchSpec, branchSpecExpr, branchSpecParts, TString::kBoth);
+        TPRegexp branchSpecExpr("^(([^>]|>[^>])*)?\\s*(>>\\s*(\\w+))?$");
+        vector<TString> branchSpecParts;
+        Util::match(branchSpec, branchSpecExpr, branchSpecParts, TString::kBoth);
 
-					vector<TString> branches;
-					///	The branch specifications are separated by ":" sign
-					if (branchSpecParts.size() > 1) Util::split(branchSpecParts[1], ":", branches, TString::kBoth);
-					TString outTreeName = (branchSpecParts.size() > 4) ? branchSpecParts[4] : TString(inChain.GetName());
+        vector<TString> branches;
+        ///	The branch specifications are separated by ":" sign
+        if (branchSpecParts.size() > 1) Util::split(branchSpecParts[1], ":", branches, TString::kBoth);
+        TString outTreeName = (branchSpecParts.size() > 4) ? branchSpecParts[4] : TString(inChain.GetName());
 
-					for (size_t i = 0; i < branches.size(); ++i) if (branches[i].Length() > 0) {
-						TString &b = branches[i];
-						if (b[0] == '^') {
-							if (i == 0) {
-								cerr << "Enabling all branches" << endl;
-								inChain.SetBranchStatus("*", 1);
-							}
-							TString bDis = b(1, b.Length()-1).Data();
-							cerr << "Disabling branch \"" << bDis << "\"" << endl;
-							inChain.SetBranchStatus(bDis.Data(), 0);
-						} else {
-							if (i == 0) {
-								cerr << "Disabling all branches" << endl;
-								inChain.SetBranchStatus("*", 0);
-							}
-							cerr << "Enabling branch \"" << b << "\"" << endl;
-							inChain.SetBranchStatus(b.Data(), 1);
-						}
-					}
-					
-					TTree* outTree = inChain.CopyTree(selection.Data(), "", nEntries, startEntry);
-					if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
-					outTree->Write();
-					inChain.SetBranchStatus("*", 1); // reactivate branches for later use
-				}
-			else {
-				TString option = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
-				Long64_t nEntries = (fctArgs.size() > 2) ? atol(fctArgs[2]) : numeric_limits<Long64_t>::max();
-				Long64_t startEntry = (fctArgs.size() > 3) ? atol(fctArgs[3]) : 0;
-				if (fctArgs.size() > 4) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 4.");
+        for (size_t i = 0; i < branches.size(); ++i) if (branches[i].Length() > 0) {
+          TString &b = branches[i];
+          if (b[0] == '^') {
+            if (i == 0) {
+              cerr << "Enabling all branches" << endl;
+              inChain.SetBranchStatus("*", 1);
+            }
+            TString bDis = b(1, b.Length()-1).Data();
+            cerr << "Disabling branch \"" << bDis << "\"" << endl;
+            inChain.SetBranchStatus(bDis.Data(), 0);
+          } else {
+            if (i == 0) {
+              cerr << "Disabling all branches" << endl;
+              inChain.SetBranchStatus("*", 0);
+            }
+            cerr << "Enabling branch \"" << b << "\"" << endl;
+            inChain.SetBranchStatus(b.Data(), 1);
+          }
+        }
+        
+        TTree* outTree = inChain.CopyTree(selection.Data(), "", nEntries, startEntry);
+        if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
+        outTree->Write();
+        inChain.SetBranchStatus("*", 1); // reactivate branches for later use
+      }
+    else {
+      TString option = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
+      Long64_t nEntries = (fctArgs.size() > 2) ? atol(fctArgs[2]) : numeric_limits<Long64_t>::max();
+      Long64_t startEntry = (fctArgs.size() > 3) ? atol(fctArgs[3]) : 0;
+      if (fctArgs.size() > 4) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 4.");
 
-				TSelector *sel = TSelector::GetSelector(fctName.Data());
-				if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
-				inChain.Process(sel, option.Data(), nEntries, startEntry);
-				delete sel;
-			}
-		}
+      TSelector *sel = TSelector::GetSelector(fctName.Data());
+      if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
+      inChain.Process(sel, option.Data(), nEntries, startEntry);
+      delete sel;
+    }
 	}
 	Settings::global().writeToGDirectory();
 	outFile.Write(0,TObject::kOverwrite);
