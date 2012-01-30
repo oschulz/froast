@@ -256,7 +256,13 @@ std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
 
 void Settings::read(TDirectory *tdir, const TString &name) {
 	THashList *settings; tdir->GetObject(name.Data(), settings);
-	if (settings == 0) throw runtime_error(string("No settings found in \"") + tdir->GetName() + "\"");
+	if (settings == 0) {
+    if (this==&m_global)
+      cerr << "No settings found in \"" << tdir->GetName() << "\"";
+    else
+      throw runtime_error(string("No settings found in \"") + tdir->GetName() + "\"");
+    return;
+  }
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
 	while (record = dynamic_cast<TEnvRec*>(next()))
