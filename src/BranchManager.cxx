@@ -28,7 +28,7 @@ namespace froast {
 
 const TString& ManagedBranch::name() const {
 	if (m_names.empty()) throw invalid_argument("No branch name set");
-	return m_names[0];
+	return m_names.back();
 }
 
 
