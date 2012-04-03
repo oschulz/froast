@@ -129,7 +129,7 @@ int map_single(int argc, char *argv[], char *envp[]) {
 
 int map_multi(int argc, char *argv[], char *envp[]) {
 	const size_t firstInputArg = 3;
-	if (argc < firstInputArg) {
+	if (argc <= firstInputArg) {
 		cerr << "Syntax: " << argv[0] << " MAPPERS TAG [INPUT]..." << endl;
 		return 1;
 	}
@@ -147,7 +147,7 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 
 int reduce(int argc, char *argv[], char *envp[]) {
 	const size_t firstInputArg = 3;
-	if (argc < firstInputArg) {
+	if (argc <= firstInputArg) {
 		cerr << "Syntax: " << argv[0] << " MAPPERS OUTPUT_FILE [INPUT]..." << endl;
 		return 1;
 	}
@@ -167,7 +167,7 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 	char **args = argv+1;
 
 	if (nargs < 2) {
-		cerr << "Syntax: " << args[0] << " [-j] ROOT_FILE/TREENAME VAREXP [SELECTION [NENTRIES [STARTENTRY]]]" << endl;
+		cerr << "Syntax: " << argv[0] << " [-j] ROOT_FILE/TREENAME VAREXP [SELECTION [NENTRIES [STARTENTRY]]]" << endl;
 		return 1;
 	}
 
