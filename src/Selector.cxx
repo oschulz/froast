@@ -163,7 +163,6 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 				///	copy(tree, branches, selection, nentries, fistentry)
 				if (fctArgs.size() <= 1) {
 					TTree *copied = inTree->CloneTree();
-					copied->Write();
 				} else {
 					///	The ordering of the arguments to the mapper are expected to be
 					///	<ol>
@@ -230,7 +229,6 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					
 					TTree* outTree = inTree->CopyTree(selection.Data(), "", nEntries, startEntry);
 					if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
-					outTree->Write();
 					inTree->SetBranchStatus("*", 1, &found); // reactivate branches for later use
 					if (inTree->GetListOfFriends()) inTree->GetListOfFriends()->Clear();
 				}
@@ -355,7 +353,6 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 		if (fctName == "copy")
 			if (fctArgs.size() <= 1) {
 				TTree *copied = inChain.CloneTree();
-				copied->Write();
 			} else {
 				///	The ordering of the arguments to the mapper are expected to be
 				///	<ol>
@@ -421,7 +418,6 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 			
 				TTree* outTree = inChain.CopyTree(selection.Data(), "", nEntries, startEntry);
 				if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
-				outTree->Write();
 				inChain.SetBranchStatus("*", 1, &found); // reactivate branches for later use
 				if (inChain.GetListOfFriends()) inChain.GetListOfFriends()->Clear();
 			}
