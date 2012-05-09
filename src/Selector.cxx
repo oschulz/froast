@@ -302,13 +302,59 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 		if (chainEntry == chainElems->GetEntriesFast()-1) continue;
 		Settings::global().tenv()->GetTable()->Clear();
 		TIter next(tenv_copy->GetTable(), kIterForward);
-		TEnvRec *record;
-		while (record = dynamic_cast<TEnvRec*>(next()))
+		while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
 			Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
 	}
 	delete tenv_copy;
 	cerr << "Selector::map(...) finished" << endl;
 }
+
+// this enhances the standard ROOT TSelector because it assures
+// that GEnv is re-read if the input file has changed.
+struct TSelectorWrapper : public TSelector {
+  TSelector *wrapped;
+  TChain* chain;
+  TEnv* tenv_copy;
+  TString lastfile;
+  TSelectorWrapper(const char* name, TChain &inchain) : chain(&inchain) {
+    // read GEnv of first input file before selector gets constructed
+    tenv_copy=(TEnv*)Settings::global().tenv()->Clone();
+    Settings::global().read(chain->GetFile());
+    wrapped = TSelector::GetSelector(name);
+    if (wrapped == 0) throw runtime_error(string("Cannot load selector ") + name);
+  };
+  ~TSelectorWrapper() {
+    Settings::global().tenv()->GetTable()->Clear();
+    TIter next(tenv_copy->GetTable(), kIterForward);
+    while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
+      Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
+    delete wrapped;
+    delete tenv_copy;
+  }
+  // reread GEnv here if necessary
+  Bool_t Process(Long64_t entry) {
+    wrapped->GetEntry(entry);
+    if (entry==0 || chain->GetFile() && lastfile!=chain->GetFile()->GetName()) {
+      lastfile=chain->GetFile()->GetName();
+      Settings::global().tenv()->GetTable()->Clear();
+      TIter next(tenv_copy->GetTable(), kIterForward);
+      while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
+        Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
+      Settings::global().read(chain->GetFile());
+    }
+    return wrapped->Process(entry);
+  }
+  // forward important virtuals here
+  void Init(TTree* t) {wrapped->Init(t); chain=dynamic_cast<TChain*>(t);}
+  void Begin(TTree* t) {wrapped->Begin(t);}
+  void SlaveBegin(TTree* t) {wrapped->SlaveBegin(t);}
+  Bool_t Notify() {return wrapped->Notify();}
+  Bool_t ProcessCut(Long64_t entry) {return wrapped->ProcessCut(entry);}
+  void ProcessFill(Long64_t entry) {wrapped->ProcessFill(entry);}
+  void SlaveTerminate() {wrapped->SlaveTerminate();}
+  void Terminate() {wrapped->Terminate();}
+  int Version() const {return wrapped->Version();}
+};
 
 void Selector::reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile) {
 	cerr << TString::Format("Selector::reduce(%s, %s, %s)", inFileNames.Data(), mappers.Data(), outFileName.Data()) << endl;
@@ -348,7 +394,6 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 			throw runtime_error(string("No files found to match ") + (const char*)inFileNames);
 		if (inChain.GetEntry(0)==0)
 			throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
-		Settings::global().read(inChain.GetFile());
 		if (fctName == "copy")
 			if (fctArgs.size() <= 1) {
 				TTree *copied = inChain.CloneTree();
@@ -429,11 +474,12 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 			Long64_t startEntry = (fctArgs.size() > 3) ? atol(fctArgs[3]) : 0;
 			if (fctArgs.size() > 4) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 4.");
 
-			TSelector *sel = TSelector::GetSelector(fctName.Data());
-			if (sel == 0) throw runtime_error(string("Cannot load selector ") + fctName.Data());
-			inChain.Process(sel, option.Data(), nEntries, startEntry);
-			delete sel;
+			TSelectorWrapper w(fctName.Data(), inChain);
+			inChain.Process(&w, option.Data(), nEntries, startEntry);
 		}
+		// add settings of last file at the end
+		if (m==mapperSpecs.size()-1)
+			Settings::global().read(inChain.GetFile());
 	}
 	Settings::global().writeToGDirectory();
 	outFile.Write(0,TObject::kOverwrite);
