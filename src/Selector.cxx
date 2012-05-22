@@ -213,6 +213,9 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					Util::split(selection, ".", friends, TString::kBoth);
 					TPRegexp friendExpr("^(.*\\W)?(\\w+)$");
 					map<TString,TTree*> friendTrees;
+          // This prevents that the own tree is added as a friend
+          // since owntree.ownbranch is already recognized
+          friendTrees[inTree->GetName()]=inTree;
 					for (int i=0;i<friends.size()-1;i++) {
 						friendExpr.Substitute(friends[i], "$2");
 						if (friendTrees.count(friends[i])!=0) continue;
@@ -402,6 +405,9 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				Util::split(selection, ".", friends, TString::kBoth);
 				TPRegexp friendExpr("^(.*\\W)?(\\w+)$");
 				map<TString,TChain*> friendChains;
+        // This prevents that the own chain is added as a friend
+        // since owntree.ownbranch is already recognized
+        friendChains[inChain.GetName()]=0;
 				for (int i=0;i<friends.size()-1;i++) {
 					friendExpr.Substitute(friends[i], "$2");
 					if (friendChains.count(friends[i])!=0) continue;
@@ -420,6 +426,8 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
 				inChain.SetBranchStatus("*", 1, &found); // reactivate branches for later use
 				if (inChain.GetListOfFriends()) inChain.GetListOfFriends()->Clear();
+        for (map<TString,TChain*>::iterator f=friendChains.begin();f!=friendChains.end();f++)
+          delete f->second;
 			}
 		else {
 			TString option = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
