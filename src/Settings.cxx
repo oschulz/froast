@@ -258,7 +258,7 @@ void Settings::read(TDirectory *tdir, const TString &name) {
 	THashList *settings; tdir->GetObject(name.Data(), settings);
 	if (settings == 0) {
     if (this==&m_global)
-      cerr << "No settings found in \"" << tdir->GetName() << "\"";
+      cerr << "No settings found in \"" << tdir->GetName() << "\"" << endl;
     else
       throw runtime_error(string("No settings found in \"") + tdir->GetName() + "\"");
     return;
