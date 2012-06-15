@@ -299,7 +299,6 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 		// Don't recompile even if fct ends with "++" after first run:
 		mapSingle(inFileName, mappers, outFileName, (chainEntry > 0) || noRecompile);
 		// Reset gEnv to old state
-		if (chainEntry == chainElems->GetEntriesFast()-1) continue;
 		Settings::global().tenv()->GetTable()->Clear();
 		TIter next(tenv_copy->GetTable(), kIterForward);
 		while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
