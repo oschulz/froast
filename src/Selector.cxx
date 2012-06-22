@@ -211,21 +211,16 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					// I use Util::split here because I can't pass 'global' to Util::match. Yes, it looks stupid indeed.
 					vector<TString> friends;
 					Util::split(selection, ".", friends, TString::kBoth);
-					TPRegexp friendExpr("^(.*\\W)?(\\w+)$");
-					map<TString,TTree*> friendTrees;
-          // This prevents that the own tree is added as a friend
-          // since owntree.ownbranch is already recognized
-          friendTrees[inTree->GetName()]=inTree;
+					TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$");
 					for (int i=0;i<friends.size()-1;i++) {
-						friendExpr.Substitute(friends[i], "$2");
-						if (friendTrees.count(friends[i])!=0) continue;
+						// skip numbers and own chain and already added friend chains
+						if (!friendExpr.Substitute(friends[i], "$2")) continue;
+						if (friends[i]==inTree->GetName()) continue;
+            if (inTree->GetFriend(friends[i])) continue;
 						TObject* friendObj; inFile.GetObject(friends[i], friendObj);
 						if (friendObj==0) throw runtime_error(string("Friend tree ")+friends[i].Data()+" not found in TDirectory");
 						TTree* friendTree=dynamic_cast<TTree*>(friendObj);
 						if (friendTree==0) throw runtime_error(string("Object ")+friends[i].Data()+" is not of type TTree");
-						if (friendTree->GetEntriesFast()!=inTree->GetEntriesFast())
-							throw invalid_argument(string("Entries of friend tree ")+friends[i].Data()+" don't match entries of "+inTree->GetName());
-						friendTrees[friends[i]]=friendTree;
 						inTree->AddFriend(friendTree, friends[i]);
 						cerr << "Adding friend tree " << friends[i] << endl;
 					}
@@ -234,6 +229,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
 					inTree->SetBranchStatus("*", 1, &found); // reactivate branches for later use
 					if (inTree->GetListOfFriends()) inTree->GetListOfFriends()->Clear();
+					if (outTree->GetListOfFriends()) outTree->GetListOfFriends()->Clear();
 				}
 			} else if (fctName == "draw") {
 				///	With the "draw" argument it is possible to access the
@@ -403,31 +399,29 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				// I use Util::split here because I can't pass 'global' to Util::match. Yes, it looks stupid indeed.
 				vector<TString> friends;
 				Util::split(selection, ".", friends, TString::kBoth);
-				TPRegexp friendExpr("^(.*\\W)?(\\w+)$");
-				map<TString,TChain*> friendChains;
-        // This prevents that the own chain is added as a friend
-        // since owntree.ownbranch is already recognized
-        friendChains[inChain.GetName()]=0;
+				TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$");
+				vector<TChain*> friendChains;
 				for (int i=0;i<friends.size()-1;i++) {
-					friendExpr.Substitute(friends[i], "$2");
-					if (friendChains.count(friends[i])!=0) continue;
+					// skip numbers and own chain and already added friend chains
+					if (!friendExpr.Substitute(friends[i], "$2")) continue;
+					if (friends[i]==inChain.GetName()) continue;
+					if (inChain.GetFriend(friends[i])) continue;
 					TChain* friendChain=new TChain(friends[i]);
-					friendChains[friends[i]]=friendChain;
+					friendChains.push_back(friendChain);
 					for (vector<TString>::iterator f=inFileList.begin();f!=inFileList.end();f++) friendChain->Add(*f);
 					if (friendChain->GetEntry(0)==0)
-						throw runtime_error(string("Invalid friend chain specification: ") + friends[i].Data());
-					if (friendChain->GetEntries()!=inChain.GetEntries())
-						throw invalid_argument(string("Entries of friend chain ")+friends[i].Data()+" don't match entries of "+inChain.GetName());
-					inChain.AddFriend(friendChain, friends[i]);
-					cerr << "Adding friend chain " << friends[i] << endl;
+						throw runtime_error(string("Invalid friend chain specification: ") + friendChain->GetName());
+					inChain.AddFriend(friendChain, friendChain->GetName());
+					cerr << "Adding friend chain " << friendChain->GetName() << endl;
 				}
 			
 				TTree* outTree = inChain.CopyTree(selection.Data(), "", nEntries, startEntry);
 				if (outTreeName != outTree->GetName()) outTree->SetName(outTreeName.Data());
 				inChain.SetBranchStatus("*", 1, &found); // reactivate branches for later use
 				if (inChain.GetListOfFriends()) inChain.GetListOfFriends()->Clear();
-        for (map<TString,TChain*>::iterator f=friendChains.begin();f!=friendChains.end();f++)
-          delete f->second;
+				if (outTree->GetListOfFriends()) outTree->GetListOfFriends()->Clear();
+				for (vector<TChain*>::iterator f=friendChains.begin();f!=friendChains.end();f++)
+					delete *f;
 			}
 		else {
 			TString option = (fctArgs.size() > 1) ? fctArgs[1] : TString("");
