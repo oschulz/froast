@@ -427,53 +427,56 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 			Long64_t startEntry = (fctArgs.size() > 3) ? atol(fctArgs[3]) : 0;
 			if (fctArgs.size() > 4) throw invalid_argument(string("Invalid number of parameters for operation ") + fctName.Data() + ", expecting 1 to 4.");
 
-      // define a class that wraps the TSelector real quick. Apparently doing
-      // this right here is still valid C++, however lord forbid if I wanted to
-      // define a function!!!
-      struct TSelectorWrapper : public TSelector {
-        TSelector *wrapped;
-        TChain* chain;
-        TEnv* tenv_copy;
-        TString lastfile;
-        TSelectorWrapper(const char* name, TChain &inchain) : chain(&inchain) {
-      /// read GEnv of first input file before selector gets constructed
-          tenv_copy=(TEnv*)Settings::global().tenv()->Clone();
-          Settings::global().read(chain->GetFile());
-          wrapped = TSelector::GetSelector(name);
-          if (wrapped == 0) throw runtime_error(string("Cannot load selector ") + name);
-        };
-        ~TSelectorWrapper() {
-          Settings::global().tenv()->GetTable()->Clear();
-          TIter next(tenv_copy->GetTable(), kIterForward);
-          while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
-            Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
-          delete wrapped;
-          delete tenv_copy;
-        }
-      /// reread GEnv here if necessary
-        Bool_t Process(Long64_t entry) {
-          wrapped->GetEntry(entry);
-          if (entry==0 || chain->GetFile() && lastfile!=chain->GetFile()->GetName()) {
-            lastfile=chain->GetFile()->GetName();
-            Settings::global().tenv()->GetTable()->Clear();
-            TIter next(tenv_copy->GetTable(), kIterForward);
-            while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
-              Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
-            Settings::global().read(chain->GetFile());
-          }
-          return wrapped->Process(entry);
-        }
-      /// forward important virtuals here
-        inline void Init(TTree* t) {wrapped->Init(t); chain=dynamic_cast<TChain*>(t);}
-        inline void Begin(TTree* t) {wrapped->Begin(t);}
-        inline void SlaveBegin(TTree* t) {wrapped->SlaveBegin(t);}
-        inline Bool_t Notify() {return wrapped->Notify();}
-        inline Bool_t ProcessCut(Long64_t entry) {return wrapped->ProcessCut(entry);}
-        inline void ProcessFill(Long64_t entry) {wrapped->ProcessFill(entry);}
-        inline void SlaveTerminate() {wrapped->SlaveTerminate();}
-        inline void Terminate() {wrapped->Terminate();}
-        inline int Version() const {return wrapped->Version();}
-      } w(fctName.Data(), inChain);
+			// define a class that wraps the TSelector real quick. Apparently doing
+			// this right here is still valid C++, however lord forbid if I wanted to
+			// define a function!!!
+			struct TSelectorWrapper : public TSelector {
+				TSelector *wrapped;
+				TChain* chain;
+				TEnv* tenv_copy;
+				TSelectorWrapper(const char* name, TChain &inchain) : chain(&inchain) {
+			/// read GEnv of first input file before selector gets constructed
+					tenv_copy=(TEnv*)Settings::global().tenv()->Clone();
+					Settings::global().read(chain->GetFile());
+					wrapped = TSelector::GetSelector(name);
+					if (wrapped == 0) throw runtime_error(string("Cannot load selector ") + name);
+				};
+			/// reread GEnv here if necessary
+				Bool_t Process(Long64_t entry) {
+					if (entry==0) {
+						Settings::global().tenv()->GetTable()->Clear();
+						TIter next(tenv_copy->GetTable(), kIterForward);
+						while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
+							Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
+						Settings::global().read(chain->GetFile());
+					}
+					return wrapped->Process(entry);
+				}
+				/// reset GEnv before wrapped->SlaveTerminate(). This way settings
+				/// written here are stored for later use, with the downside that, for
+				/// instance a CPGConfCal should not be initialized at this place.
+				/// Someday I will fix this kind of irrational behaviour.
+				inline void SlaveTerminate() {
+					Settings::global().tenv()->GetTable()->Clear();
+					TIter next(tenv_copy->GetTable(), kIterForward);
+					while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
+						Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
+					wrapped->SlaveTerminate();
+				}
+				~TSelectorWrapper() {
+					delete wrapped;
+					delete tenv_copy;
+				}
+			/// forward other important virtuals here
+				inline void Init(TTree* t) {wrapped->Init(t); chain=dynamic_cast<TChain*>(t);}
+				inline void Begin(TTree* t) {wrapped->Begin(t);}
+				inline void SlaveBegin(TTree* t) {wrapped->SlaveBegin(t);}
+				inline Bool_t Notify() {return wrapped->Notify();}
+				inline Bool_t ProcessCut(Long64_t entry) {return wrapped->ProcessCut(entry);}
+				inline void ProcessFill(Long64_t entry) {wrapped->ProcessFill(entry);}
+				inline void Terminate() {wrapped->Terminate();}
+				inline int Version() const {return wrapped->Version();}
+			} w(fctName.Data(), inChain);
 
 			inChain.Process(&w, option.Data(), nEntries, startEntry);
 		}
