@@ -212,7 +212,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					vector<TString> friends;
 					Util::split(selection, ".", friends, TString::kBoth);
 					TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$");
-					for (int i=0;i<friends.size()-1;i++) {
+					for (int i=0;i+1<friends.size();i++) {
 						// skip numbers and own chain and already added friend chains
 						if (!friendExpr.Substitute(friends[i], "$2")) continue;
 						if (friends[i]==inTree->GetName()) continue;
@@ -221,6 +221,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 						if (friendObj==0) throw runtime_error(string("Friend tree ")+friends[i].Data()+" not found in TDirectory");
 						TTree* friendTree=dynamic_cast<TTree*>(friendObj);
 						if (friendTree==0) throw runtime_error(string("Object ")+friends[i].Data()+" is not of type TTree");
+            friendTree->SetBranchStatus("*", 1);
 						inTree->AddFriend(friendTree, friends[i]);
 						cerr << "Adding friend tree " << friends[i] << endl;
 					}
@@ -397,9 +398,10 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				// I use Util::split here because I can't pass 'global' to Util::match. Yes, it looks stupid indeed.
 				vector<TString> friends;
 				Util::split(selection, ".", friends, TString::kBoth);
-				TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$");
+				TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$"), branchExpr("");
+        TString buffer;
 				vector<TChain*> friendChains;
-				for (int i=0;i<friends.size()-1;i++) {
+				for (int i=0;i+1<friends.size();i++) {
 					// skip numbers and own chain and already added friend chains
 					if (!friendExpr.Substitute(friends[i], "$2")) continue;
 					if (friends[i]==inChain.GetName()) continue;
@@ -410,6 +412,8 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 					if (friendChain->GetEntry(0)==0)
 						throw runtime_error(string("Invalid friend chain specification: ") + friendChain->GetName());
 					inChain.AddFriend(friendChain, friendChain->GetName());
+          for (int b=0;b<friendChain->GetListOfBranches()->GetEntries();b++)
+            inChain.SetBranchStatus(friends[i]+TString(".")+TString(friendChain->GetListOfBranches()->At(b)->GetName()), 1);
 					cerr << "Adding friend chain " << friendChain->GetName() << endl;
 				}
 			

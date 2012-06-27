@@ -250,7 +250,6 @@ std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
 		if (record->GetLevel() >= minLevel)
 			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
 	}
-	next=TIter(outgoing.GetTable(), kIterForward);
 	return out;
 }
 
