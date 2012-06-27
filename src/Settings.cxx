@@ -116,28 +116,28 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 
 
 bool Settings::operator()(const char* name, bool dflt, bool saveDflt) {
-	bool value = tenv()->GetValue(name, dflt) > 0;
-	if (saveDflt && !tenv()->Defined(name)) tenv()->SetValue(name, value);
+	bool value = (tenv()->Defined(name)?tenv()->GetValue(name, dflt):outgoing.GetValue(name, dflt)) > 0;
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
 	return value;
 }
 
 
 int32_t Settings::operator()(const char* name, int32_t dflt, bool saveDflt) {
-	int32_t value = tenv()->GetValue(name, dflt);
-	if (saveDflt && !tenv()->Defined(name)) tenv()->SetValue(name, value);
+	int32_t value = (tenv()->Defined(name)?tenv()->GetValue(name, dflt):outgoing.GetValue(name, dflt));
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
 	return value;
 }
 
 
 double Settings::operator()(const char* name, double dflt, bool saveDflt) {
-	double value = tenv()->GetValue(name, dflt);
-	if (saveDflt && !tenv()->Defined(name)) tenv()->SetValue(name, value);
+	double value = (tenv()->Defined(name)?tenv()->GetValue(name, dflt):outgoing.GetValue(name, dflt));
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
 	return value;
 }
 
 const char* Settings::operator()(const char* name, const char* dflt, bool saveDflt) {
-	const char* value = tenv()->GetValue(name, dflt);
-	if (saveDflt && !tenv()->Defined(name)) tenv()->SetValue(name, value);
+	const char* value = (tenv()->Defined(name)?tenv()->GetValue(name, dflt):outgoing.GetValue(name, dflt));
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
 	return value;
 }
 
@@ -250,18 +250,18 @@ std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
 		if (record->GetLevel() >= minLevel)
 			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
 	}
+	next=TIter(outgoing.GetTable(), kIterForward);
 	return out;
 }
 
 
 void Settings::read(TDirectory *tdir, const TString &name) {
 	THashList *settings; tdir->GetObject(name.Data(), settings);
-	if (settings == 0 && this!=m_global)
+	if (settings == 0 && this!=&m_global)
 		throw runtime_error(string("No settings found in \"") + tdir->GetName() + "\"");
 	TIter next(settings, kIterForward);
-	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next()))
-		if (!tenv()->GetValue(record->GetName(), (char*)0)) // avoid stupid verbosity
+	while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
+		if (!tenv()->Defined(record->GetName())) // avoid stupid verbosity
 			tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
 }
 
@@ -273,12 +273,15 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
 	THashList *settings = table();
 	assert (settings != 0);
 	TIter next(settings, kIterForward);
-	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while (TEnvRec* record = dynamic_cast<TEnvRec*>(next())) {
 		TString name(record->GetName());
 		if ((record->GetLevel() >= minLevel) && !name.Contains("Path"))
 			settingsOut.AddLast(record->Clone());
 	}
+	next=TIter(outgoing.GetTable(), kIterForward);
+	while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
+		if (record->GetLevel() >= minLevel)
+			settingsOut.AddLast(record->Clone());
 	settingsOut.Write(name.Data(), TObject::kSingleKey);
 }
 

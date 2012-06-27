@@ -54,7 +54,7 @@ class Settings {
 protected:
 	static Settings m_global;
 
-	TEnv* m_env;
+	TEnv *m_env, outgoing;
 	bool m_envOwned;
 	
 public:

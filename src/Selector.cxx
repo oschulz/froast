@@ -216,7 +216,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 						// skip numbers and own chain and already added friend chains
 						if (!friendExpr.Substitute(friends[i], "$2")) continue;
 						if (friends[i]==inTree->GetName()) continue;
-            if (inTree->GetFriend(friends[i])) continue;
+						if (inTree->GetFriend(friends[i])) continue;
 						TObject* friendObj; inFile.GetObject(friends[i], friendObj);
 						if (friendObj==0) throw runtime_error(string("Friend tree ")+friends[i].Data()+" not found in TDirectory");
 						TTree* friendTree=dynamic_cast<TTree*>(friendObj);
@@ -299,7 +299,7 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 		// Don't recompile even if fct ends with "++" after first run:
 		mapSingle(inFileName, mappers, outFileName, (chainEntry > 0) || noRecompile);
 		// Reset gEnv to old state
-		Settings::global().tenv()->GetTable()->Clear();
+		Settings::global().table()->Clear();
 		TIter next(tenv_copy->GetTable(), kIterForward);
 		while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
 			Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
@@ -441,27 +441,16 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 					wrapped = TSelector::GetSelector(name);
 					if (wrapped == 0) throw runtime_error(string("Cannot load selector ") + name);
 				};
-			/// reread GEnv here if necessary
+			/// read GEnv of next input file if necessary
 				Bool_t Process(Long64_t entry) {
 					if (entry==0) {
-						Settings::global().tenv()->GetTable()->Clear();
+						Settings::global().table()->Clear();
 						TIter next(tenv_copy->GetTable(), kIterForward);
 						while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
 							Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
 						Settings::global().read(chain->GetFile());
 					}
 					return wrapped->Process(entry);
-				}
-				/// reset GEnv before wrapped->SlaveTerminate(). This way settings
-				/// written here are stored for later use, with the downside that, for
-				/// instance a CPGConfCal should not be initialized at this place.
-				/// Someday I will fix this kind of irrational behaviour.
-				inline void SlaveTerminate() {
-					Settings::global().tenv()->GetTable()->Clear();
-					TIter next(tenv_copy->GetTable(), kIterForward);
-					while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
-						Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
-					wrapped->SlaveTerminate();
 				}
 				~TSelectorWrapper() {
 					delete wrapped;
@@ -474,6 +463,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				inline Bool_t Notify() {return wrapped->Notify();}
 				inline Bool_t ProcessCut(Long64_t entry) {return wrapped->ProcessCut(entry);}
 				inline void ProcessFill(Long64_t entry) {wrapped->ProcessFill(entry);}
+				inline void SlaveTerminate() {wrapped->SlaveTerminate();}
 				inline void Terminate() {wrapped->Terminate();}
 				inline int Version() const {return wrapped->Version();}
 			} w(fctName.Data(), inChain);
