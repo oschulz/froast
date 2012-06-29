@@ -39,14 +39,14 @@
 	* Commands: 
 	*	- settings [-j] INPUTFILE
 	*	- map-single INPUT_FILE MAPPERS OUTPUTFILE
-	*	- map-multi MAPPER OUTPUTFILE_TAG INPUTFILES
+	*	- map-multi OUTPUTFILE_TAG MAPPERS INPUTFILES
 	*	- tabulate ROOT_FILE/TREENAME VAREXP [SELECTION [NENTRIES [STARTENTRY]]]
 	*
 	* With the settings option the settings from processed ROOT files or .rootrc can be read
 	* out and with the -j option converted to json (output on the screen). \n
 	* With the map-single option one input file can be processed. See froast::Selector::mapSingle for
 	* more information on the input parameters. \n
-	* With the map-multi option several input files can be processed. See froast::Selector::mapSingle for
+	* With the map-multi option several input files can be processed. See froast::Selector::mapMulti for
 	* more information on the input parameters. \n
 */
 
@@ -115,12 +115,12 @@ int settings(int argc, char *argv[], char *envp[]) {
 
 int map_single(int argc, char *argv[], char *envp[]) {
 	if (argc != 4) {
-		cerr << "Syntax: " << argv[0] << " INPUT_FILE MAPPER OUTPUT_FILE" << endl;
+		cerr << "Syntax: " << argv[0] << " MAPPERS OUTPUT_FILE INPUT_FILE" << endl;
 		return 1;
 	}
-	string inFileName = argv[1];
-	string mappers = argv[2];
-	string outFileName = argv[3];
+	string mappers = argv[1];
+	string outFileName = argv[2];
+	string inFileName = argv[3];
 	Selector::mapSingle(inFileName, mappers, outFileName);
 
 	return 0;
