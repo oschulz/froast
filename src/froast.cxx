@@ -38,8 +38,9 @@
 	* Syntax: froast COMMAND ... \n
 	* Commands: 
 	*	- settings [-j] INPUTFILE
-	*	- map-single INPUT_FILE MAPPERS OUTPUTFILE
-	*	- map-multi OUTPUTFILE_TAG MAPPERS INPUTFILES
+	*	- map-single MAPPERS OUTPUTFILE INPUT_FILE
+	*	- map-multi MAPPERS OUTPUTFILE_TAG INPUTFILES
+	* - reduce MAPPERS OUTPUTFILE INPUTFILES
 	*	- tabulate ROOT_FILE/TREENAME VAREXP [SELECTION [NENTRIES [STARTENTRY]]]
 	*
 	* With the settings option the settings from processed ROOT files or .rootrc can be read
@@ -47,6 +48,8 @@
 	* With the map-single option one input file can be processed. See froast::Selector::mapSingle for
 	* more information on the input parameters. \n
 	* With the map-multi option several input files can be processed. See froast::Selector::mapMulti for
+	* more information on the input parameters. \n
+	* With the reduce option several input files can be combined. See froast::Selector::reduce for
 	* more information on the input parameters. \n
 */
 

@@ -160,7 +160,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 			if (fctName == "copy") {
 				///	When choosing the "copy" argument/mapper the selected TTree (or subbranches) will be
 				///	copied to a new file. Up to 5 arguments are allowed, example \n
-				///	copy(tree, branches, selection, nentries, fistentry)
+				///	copy(tree, branches, selection, nentries, firstentry)
 				if (fctArgs.size() <= 1) {
 					TTree *copied = inTree->CloneTree();
 				} else {
@@ -221,7 +221,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 						if (friendObj==0) throw runtime_error(string("Friend tree ")+friends[i].Data()+" not found in TDirectory");
 						TTree* friendTree=dynamic_cast<TTree*>(friendObj);
 						if (friendTree==0) throw runtime_error(string("Object ")+friends[i].Data()+" is not of type TTree");
-            friendTree->SetBranchStatus("*", 1);
+						friendTree->SetBranchStatus("*", 1);
 						inTree->AddFriend(friendTree, friends[i]);
 						cerr << "Adding friend tree " << friends[i] << endl;
 					}
@@ -236,7 +236,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 				///	With the "draw" argument it is possible to access the
 				///	TTree draw method. The options are the same as for
 				///	the TTree draw method: \n
-				/// 	draw(tree, varexp, selection, option, nentries, fistentry) 
+				/// 	draw(tree, varexp, selection, option, nentries, firstentry) 
 				///	<ol>
 				///	<li> Name of the tree to draw from
 				///	<li> Formula / expression / data to draw
@@ -254,7 +254,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 				inTree->Draw(varexp.Data(), selection.Data(), (TString("goff ")+option).Data(), nEntries, startEntry);
 			} else {
 				///	If as argument / mapper the name of a selector is given the syntax is \n
-				/// 	selector(tree, option, nentries, fistentry) \n
+				/// 	selector(tree, option, nentries, firstentry) \n
 				///	The parameters are the typical parameters of a TTree call to a TSelector <ol>
 				///	<li> Name of the TTree to process
 				///	<li> option (?) (optional)
@@ -399,7 +399,6 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				vector<TString> friends;
 				Util::split(selection, ".", friends, TString::kBoth);
 				TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$"), branchExpr("");
-        TString buffer;
 				vector<TChain*> friendChains;
 				for (int i=0;i+1<friends.size();i++) {
 					// skip numbers and own chain and already added friend chains
@@ -412,8 +411,8 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 					if (friendChain->GetEntry(0)==0)
 						throw runtime_error(string("Invalid friend chain specification: ") + friendChain->GetName());
 					inChain.AddFriend(friendChain, friendChain->GetName());
-          for (int b=0;b<friendChain->GetListOfBranches()->GetEntries();b++)
-            inChain.SetBranchStatus(friends[i]+TString(".")+TString(friendChain->GetListOfBranches()->At(b)->GetName()), 1);
+					for (int b=0;b<friendChain->GetListOfBranches()->GetEntries();b++)
+						inChain.SetBranchStatus(friends[i]+TString(".")+TString(friendChain->GetListOfBranches()->At(b)->GetName()), 1);
 					cerr << "Adding friend chain " << friendChain->GetName() << endl;
 				}
 			
