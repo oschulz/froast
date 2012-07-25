@@ -347,7 +347,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 		for (vector<TString>::iterator f=inFileList.begin();f!=inFileList.end();f++) inChain.Add(*f);
 		if (inChain.GetListOfFiles()->GetEntries()==0)
 			throw runtime_error(string("No files found to match ") + (const char*)inFileNames);
-		if (inChain.GetEntry(0)==0)
+		if (inChain.GetListOfBranches()==0)
 			throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
 		if (fctName == "copy")
 			if (fctArgs.size() <= 1) {
