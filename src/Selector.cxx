@@ -45,6 +45,7 @@ namespace {
 class TTreeCurrentFile : public TTreeFormula {
 protected:
 	virtual Bool_t IsString(Int_t oper) const { return true; }
+	virtual Bool_t IsString() const { return true; } // according to TTreeFormula::IsString()
 
 public:
 	virtual const char *EvalStringInstance(Int_t i = 0)
