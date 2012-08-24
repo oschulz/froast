@@ -70,6 +70,8 @@ public:
 	virtual void inputFrom(TTree *tree, const char* branchName = 0) {
 		if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) return;
 		else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
+			// because TChain::SetBranchAddress returns kNoCheck in every case
+			if (!tree->GetBranch(it->Data())) continue;
 			if (tree->SetBranchAddress(it->Data(), &value) >= 0) return;
 		}
 		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
@@ -110,6 +112,7 @@ public:
 	virtual void inputFrom(TTree *tree, const char* branchName = 0) {
 		if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) return;
 		else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
+			if (!tree->GetBranch(it->Data())) continue;
 			if (tree->SetBranchAddress(it->Data(), &value) >= 0) return;
 		}
 		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
@@ -150,6 +153,7 @@ public:
 	virtual void inputFrom(TTree *tree, const char* branchName = 0) {
 		if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) return;
 		else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
+			if (!tree->GetBranch(it->Data())) continue;
 			if (tree->SetBranchAddress(it->Data(), &value) >= 0) return;
 		}
 		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
