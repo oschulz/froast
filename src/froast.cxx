@@ -95,7 +95,7 @@ int settings(int argc, char *argv[], char *envp[]) {
 		} else if (inFileName.EndsWith(".rootrc")) {
 			settings.read(inFileName);
 		} else if (inFileName=="-" || inFileName.EndsWith("/stdin")) {
-      // yes this isn't super-safe for instance on ./stdin but who would name a file 'stdin'????
+			// yes this isn't super-safe for instance on ./stdin but who would name a file 'stdin'????
 			settings.read(TString("/dev/stdin"));
 		} else if (inFileName.EndsWith(".json")) {
 			ifstream in(inFileName.Data());
@@ -186,7 +186,30 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 	TString inFileName = input(0, splitPos);
 	TString treeName = input(splitPos + 1, input.Length() - splitPos - 1);
 	TChain chain(treeName);
-	chain.Add(inFileName);
+
+	if (inFileName.First('*')>=inFileName.Last('/'))
+		chain.Add(inFileName);
+	// this should assist the TChain with its retarded shell expansion
+	else {
+		TObjArray &files=*chain.GetListOfFiles();
+		chain.Add((TString)inFileName(0,splitPos=inFileName.First('/')));
+		int length=files.GetEntries();
+		inFileName.Remove(0,splitPos+1);
+		while (inFileName.Length()>0 && length>0) {
+			splitPos=inFileName.First('/');
+			if (splitPos<0) splitPos=inFileName.Length();
+			for (int entry=0;entry<length;entry++)
+				chain.Add(TString(files[entry]->GetTitle())+"/"+inFileName(0,splitPos));
+			files.RemoveRange(0,length-1);
+			files.Compress();
+			length=files.GetEntries();
+			inFileName.Remove(0,splitPos+1);
+		}
+		// it seems that the operation above messes up chain's file list, so let's just rebuild it here:
+		TObjArray a(*(TObjArray*)files.Clone()); chain.Reset();
+		for (int entry=0;entry<length;entry++) chain.Add(a[entry]->GetTitle());
+	}
+
 
 	TString varexp(args[1]);
 	const TString selection = (nargs > 2) ? args[2] : "";
