@@ -5,21 +5,19 @@ MAINTAINERCLEANFILES = Makefile.in
 
 lib_LTLIBRARIES = libfroast.la
 
-libfroast_la_SOURCES = \
-	HelloWorld.cxx
+libfroast_la_SOURCES = 
 
-libfroast_la_headers = \
-	HelloWorld.h
+libfroast_la_headers = 
 
 pkginclude_HEADERS = $(libfroast_la_headers)
 
-bin_PROGRAMS = froast
+# bin_PROGRAMS = froast
 
-noinst_PROGRAMS =
+# noinst_PROGRAMS =
 
-froast_SOURCES = froast.cxx
-froast_LDADD = libfroast.la
-# froast_LDFLAGS = -static
+# froast_SOURCES = froast.cxx
+# froast_LDADD = libfroast.la
+# # froast_LDFLAGS = -static
 
 
 libfroast_la_SOURCES += libfroast-rdict.cxx

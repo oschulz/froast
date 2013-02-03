@@ -18,7 +18,7 @@ CXX_PROJECT_INIT
 
 # Checks for dependencies
 
-ROOTSYS_DEPS([glibs], [-lSpectrum])
+ROOTSYS_DEPS([], [])
 
 CXX_PROJECT_DEPS([])
 
