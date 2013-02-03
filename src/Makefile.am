@@ -5,9 +5,13 @@ MAINTAINERCLEANFILES = Makefile.in
 
 lib_LTLIBRARIES = libfroast.la
 
-libfroast_la_SOURCES = 
+libfroast_la_SOURCES = \
+	util.cxx \
+	File.cxx
 
-libfroast_la_headers = 
+libfroast_la_headers = \
+	util.h \
+	File.h
 
 pkginclude_HEADERS = $(libfroast_la_headers)
 
