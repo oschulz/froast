@@ -71,6 +71,7 @@ void Selector::mapMulti(TChain *chain, const TString &selector, const TString &t
 		TTree *inTree; inFile.GetObject(treeName.c_str(), inTree);
 		
 		TFile outFile(outFileName.c_str(), "recreate");
+		outFile.SetCompressionLevel(Settings::get("froast.tfile.compression.level", 1));
 
 		TSelector *sel = TSelector::GetSelector(selector.Data());
 		if (sel == 0) throw runtime_error(string("Cannot load selector ") + selector.Data());
@@ -96,6 +97,7 @@ void Selector::mapMulti(TChain *chain, const TString &selector, const TString &t
 void Selector::mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile) {
 	TFile inFile(inFileName.Data(), "read");
 	TFile outFile(outFileName.Data(), "recreate");
+	outFile.SetCompressionLevel(Settings::get("froast.tfile.compression.level", 1));
 
 	TPRegexp mapperSpecExpr("^(.*)\\((.*)\\)$");
 	TPRegexp xxExp("\\+\\+$");
