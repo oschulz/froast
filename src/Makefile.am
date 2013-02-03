@@ -3,32 +3,32 @@ MAINTAINERCLEANFILES = Makefile.in
 
 # EXTRA_DIST = some extra files, e.g. test-data
 
-lib_LTLIBRARIES = libtemplate-project.la
+lib_LTLIBRARIES = libfroast.la
 
-libtemplate_project_la_SOURCES = \
+libfroast_la_SOURCES = \
 	HelloWorld.cxx
 
-libtemplate_project_la_headers = \
+libfroast_la_headers = \
 	HelloWorld.h
 
-pkginclude_HEADERS = $(libtemplate_project_la_headers)
+pkginclude_HEADERS = $(libfroast_la_headers)
 
-bin_PROGRAMS = template-project
+bin_PROGRAMS = froast
 
 noinst_PROGRAMS =
 
-template_project_SOURCES = template-project.cxx
-template_project_LDADD = libtemplate-project.la
-# template_project_LDFLAGS = -static
+froast_SOURCES = froast.cxx
+froast_LDADD = libfroast.la
+# froast_LDFLAGS = -static
 
 
-libtemplate_project_la_SOURCES += libtemplate-project-rdict.cxx
+libfroast_la_SOURCES += libfroast-rdict.cxx
 
-libtemplate-project-rdict.cxx: $(libtemplate_project_la_headers) template-project-LinkDef.h
+libfroast-rdict.cxx: $(libfroast_la_headers) froast-LinkDef.h
 	$(ROOTCINT) -f $@ -c -p $(CPPFLAGS) $(CXXFLAGS) $+
 
 rootmapdir = $(libdir)
-rootmap_DATA = .libs/libtemplate-project.rootmap
+rootmap_DATA = .libs/libfroast.rootmap
 
-.libs/libtemplate-project.rootmap: libtemplate-project.la | $(libtemplate_project_la_headers) template-project-LinkDef.h
-	$(RLIBMAP) -o $@ -l .libs/libtemplate-project@SHLIBEXT@ -c $|
+.libs/libfroast.rootmap: libfroast.la | $(libfroast_la_headers) froast-LinkDef.h
+	$(RLIBMAP) -o $@ -l .libs/libfroast@SHLIBEXT@ -c $|

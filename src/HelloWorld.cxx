@@ -1,4 +1,4 @@
-// Copyright (C) YEAR AUTHOR <EMAIL>
+// Copyright (C) 2013 Oliver Schulz <oliver.schulz@tu-dortmund.de>
 
 // This is free software; you can redistribute it and/or modify it under
 // the terms of the GNU Lesser General Public License as published by
@@ -23,7 +23,7 @@
 using namespace std;
 
 
-namespace tmplns {
+namespace froast {
 
 
 void HelloWorld::run() {
@@ -39,4 +39,4 @@ HelloWorld::~HelloWorld() {
 }
 
 
-} // namespace tmplns
+} // namespace froast
