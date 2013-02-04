@@ -9,6 +9,7 @@ libfroast_la_SOURCES = \
 	util.cxx \
 	block_allocator.cxx vjson.cxx \
 	File.cxx \
+	JSON.cxx \
 	Selector.cxx \
 	Settings.cxx
 
@@ -16,6 +17,7 @@ libfroast_la_headers = \
 	util.h \
 	block_allocator.h vjson.h \
 	File.h \
+	JSON.h \
 	Selector.h \
 	Settings.h
 

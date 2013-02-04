@@ -1,0 +1,52 @@
+// Copyright (C) 2011 Oliver Schulz <oliver.schulz@tu-dortmund.de>
+
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+
+#ifndef FROAST_JSON_H
+#define FROAST_JSON_H
+
+#include <string>
+#include <iostream>
+
+#include <THashList.h>
+#include <TString.h>
+#include <TParameter.h>
+
+
+namespace froast {
+
+
+class JSON {
+public:
+	static THashList* read(const char* json);
+	static THashList* read(istream &json);
+	static THashList* read(const std::string &json);
+	static THashList* read(const TString &json);
+
+	static std::string toString(const TObject* list);
+
+	static ostream& write(ostream &json, const TObject* list);
+};
+
+
+} // namespace froast
+
+
+#ifdef __CINT__
+#pragma link C++ class froast::JSON-;
+#endif
+
+#endif // FROAST_JSON_H
