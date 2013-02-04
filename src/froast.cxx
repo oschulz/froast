@@ -209,7 +209,7 @@ int main(int argc, char *argv[], char *envp[]) {
 			cerr << "  settings" << endl;
 			cerr << "  map-single" << endl;
 			cerr << "  map-multi" << endl;
-		  cerr << "  reduce" << endl;
+			cerr << "  reduce" << endl;
 			cerr << "  tabulate" << endl;
 			return 1;
 		}
