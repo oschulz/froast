@@ -24,6 +24,8 @@
 #include <TFile.h>
 #include <THashList.h>
 
+#include "../config.h"
+
 #include "util.h"
 #include "Selector.h"
 #include "Settings.h"
@@ -93,6 +95,8 @@ int main(int argc, char *argv[], char *envp[]) {
 		// "is not of a class known to ROOT" errors on creation of STL vector
 		// branches:
 		gROOT->ProcessLine("#include <vector>");
+		
+		gSystem->SetProgname(PACKAGE_TARNAME);
 		
 		string progName(argv[0]);
 
