@@ -20,8 +20,8 @@
 // THE SOFTWARE.
 
 
-#ifndef JSON_H
-#define JSON_H
+#ifndef VJSON_H
+#define VJSON_H
 
 #include "block_allocator.h"
 

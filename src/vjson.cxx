@@ -21,7 +21,7 @@
 
 
 #include <memory.h>
-#include "json.h"
+#include "vjson.h"
 
 
 namespace {
