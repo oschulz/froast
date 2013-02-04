@@ -1,6 +1,6 @@
 # Initialization
 
-AC_INIT([FRoASt], [0.2.0], [], [froast])
+AC_INIT([FRoASt], [0.3.0], [], [froast])
 
 AC_CONFIG_MACRO_DIR([m4])
 
