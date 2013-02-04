@@ -21,7 +21,9 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <limits>
 #include <stdint.h>
+
 
 class THashList;
 class TDirectory;
@@ -52,11 +54,20 @@ public:
 };
 
 
+
+class Util {
+public:
+	inline static double floatNaN() { return std::numeric_limits<float>::quiet_NaN(); }
+	inline static double doubleNaN() { return std::numeric_limits<double>::quiet_NaN(); }
+};
+
+
 } // namespace froast
 
 
 #ifdef __CINT__
 #pragma link C++ class froast::Settings-;
+#pragma link C++ class froast::Util-;
 #endif
 
 
