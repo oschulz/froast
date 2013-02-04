@@ -20,7 +20,12 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 #include <limits>
+
+#include <TString.h>
+#include <TCollection.h>
+#include <TPRegexp.h>
 
 
 namespace froast {
@@ -31,6 +36,15 @@ class Util {
 public:
 	inline static double floatNaN() { return std::numeric_limits<float>::quiet_NaN(); }
 	inline static double doubleNaN() { return std::numeric_limits<double>::quiet_NaN(); }
+
+	static void copy(const TCollection *from, std::vector<TString> &to);
+	static void copy(const TCollection *from, std::vector<TString> &to, TString::EStripType strip);
+
+	static void split(const TString &s, const TString &sep, std::vector<TString> &parts);
+	static void split(const TString &s, const TString &sep, std::vector<TString> &parts, TString::EStripType strip);
+
+	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &matches);
+	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &matches, TString::EStripType strip);
 };
 
 
