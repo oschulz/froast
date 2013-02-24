@@ -191,7 +191,10 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					UInt_t found;
 					for (size_t i = 0; i < branches.size(); ++i) if (branches[i].Length() > 0) {
 						TString &b = branches[i];
-						if (b[0] == '^') {
+						if (b == "*") {
+							cerr << "Enabling all branches" << endl;
+							inTree->SetBranchStatus("*", 1, &found);
+						} else if (b[0] == '^') {
 							if (i == 0) {
 								cerr << "Enabling all branches" << endl;
 								inTree->SetBranchStatus("*", 1, &found);
