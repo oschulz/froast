@@ -33,28 +33,69 @@
 namespace froast {
 
 
+class BranchManager;
+class InputBranchManager;
+class OutputBranchManager;
+
+
+
 class ManagedBranch {
 protected:
 	std::vector<TString> m_names;
+	bool m_inAvail;
+
+	template <typename Value> ManagedBranch& inputValueFrom(Value &value, TTree *tree, const char* branchName = 0, bool optional = false);
+
+	template<typename Value> ManagedBranch& outputValueTo(Value &value, TTree *tree, const char* branchName = 0);
 
 public:
 	const TString& name() const;
 
 	const std::vector<TString>& names() const;
 	
-	void addName(const TString &branchName);
+	bool inputAvailable() const { return m_inAvail; }
 
-	virtual void outputTo(TTree *tree, const char* branchName = 0) = 0;
-	virtual void inputFrom(TTree *tree, const char* branchName = 0) = 0;
+	ManagedBranch& addName(const TString &branchName);
+
+	virtual ManagedBranch& inputFrom(TTree *tree, const char* branchName = 0, bool optional = false) = 0;
+
+	virtual ManagedBranch& outputTo(TTree *tree, const char* branchName = 0) = 0;
+
+	ManagedBranch& addTo(BranchManager &manager);
+
+	ManagedBranch& inputFrom(InputBranchManager &manager, bool optional = false);
+
+	ManagedBranch& outputTo(OutputBranchManager &manager, int32_t outputLevel = 0);
 	
 	virtual void clear() = 0;
 
 	ManagedBranch();
 
 	ManagedBranch(const TString &branchName);
-	
+
 	virtual ~ManagedBranch();
 };
+
+
+template <typename Value> ManagedBranch& ManagedBranch::inputValueFrom(Value &value, TTree *tree, const char* branchName, bool optional) {
+	if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) { m_inAvail = true; return *this; }
+	else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
+		// TChain::SetBranchAddress returns kNoCheck in every case, so:
+		if ( (tree->GetBranch(it->Data())) && (tree->SetBranchAddress(it->Data(), &value) >= 0) )
+			{ m_inAvail = true; return *this; }
+	}
+	m_inAvail = false;
+	if (!optional) throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
+	return *this;
+}
+
+
+template<typename Value> ManagedBranch& ManagedBranch::outputValueTo(Value &value, TTree *tree, const char* branchName) {
+	if (branchName == 0) branchName = name().Data();
+	tree->Branch(branchName, &value, 32000, 0);
+	return *this;
+}
+
 
 
 template<typename A> class ScalarBranch: public ManagedBranch {
@@ -62,20 +103,11 @@ protected:
 	A value;
 	
 public:
-	virtual void outputTo(TTree *tree, const char* branchName = 0) {
-		if (branchName == 0) branchName = name().Data();
-		tree->Branch(branchName, &value, 32000, 0);
-	}
-	
-	virtual void inputFrom(TTree *tree, const char* branchName = 0) {
-		if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) return;
-		else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
-			// because TChain::SetBranchAddress returns kNoCheck in every case
-			if (!tree->GetBranch(it->Data())) continue;
-			if (tree->SetBranchAddress(it->Data(), &value) >= 0) return;
-		}
-		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
-	}
+	virtual ManagedBranch& inputFrom(TTree *tree, const char* branchName = 0, bool optional = false)
+		{ return inputValueFrom(value, tree, branchName, optional); }
+
+	virtual ManagedBranch& outputTo(TTree *tree, const char* branchName = 0)
+		{ return outputValueTo(value, tree, branchName); }
 	
 	A& content() { return value; }
 	const A& content() const { return value; }
@@ -104,19 +136,11 @@ protected:
 	A *value;
 	
 public:
-	virtual void outputTo(TTree *tree, const char* branchName = 0) {
-		if (branchName == 0) branchName = name().Data();
-		tree->Branch(branchName, &value, 32000, 0);
-	}
-	
-	virtual void inputFrom(TTree *tree, const char* branchName = 0) {
-		if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) return;
-		else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
-			if (!tree->GetBranch(it->Data())) continue;
-			if (tree->SetBranchAddress(it->Data(), &value) >= 0) return;
-		}
-		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
-	}
+	virtual ManagedBranch& inputFrom(TTree *tree, const char* branchName = 0, bool optional = false)
+		{ return inputValueFrom(value, tree, branchName, optional); }
+
+	virtual ManagedBranch& outputTo(TTree *tree, const char* branchName = 0)
+		{ return outputValueTo(value, tree, branchName); }
 
 	A& content() { return *value; }
 	const A& content() const { return *value; }
@@ -145,19 +169,11 @@ protected:
 	std::vector<A> *value;
 	
 public:
-	virtual void outputTo(TTree *tree, const char* branchName = 0) {
-		if (branchName == 0) branchName = name().Data();
-		tree->Branch(branchName, &value, 32000, 0);
-	}
-	
-	virtual void inputFrom(TTree *tree, const char* branchName = 0) {
-		if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) return;
-		else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
-			if (!tree->GetBranch(it->Data())) continue;
-			if (tree->SetBranchAddress(it->Data(), &value) >= 0) return;
-		}
-		throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
-	}
+	virtual ManagedBranch& inputFrom(TTree *tree, const char* branchName = 0, bool optional = false)
+		{ return inputValueFrom(value, tree, branchName, optional); }
+
+	virtual ManagedBranch& outputTo(TTree *tree, const char* branchName = 0)
+		{ return outputValueTo(value, tree, branchName); }
 
 	std::vector<A>& content() { return *value; }
 	const std::vector<A>& content() const { return *value; }
@@ -199,15 +215,72 @@ protected:
 public:
 	void add(ManagedBranch &branch);
 	
+	/// @deprecated, Use InputBranchManager or OutputBranchManager instead
+	void inputFrom(TTree *tree);
+
+	/// @deprecated, Use InputBranchManager or OutputBranchManager instead
 	void outputTo(TTree *tree);
 
-	void inputFrom(TTree *tree);
-	
 	void clearData();
 	
 	BranchManager();
 	virtual ~BranchManager();
 };
+
+
+// Note: Once deprecated methods inputFrom and outputTo have been removed
+// from BranchManager, InputBranchManager should be changed to inherit
+// from BranchManager
+class InputBranchManager {
+protected:
+	struct BranchSpec {
+		ManagedBranch* branch;
+		bool optional;
+		BranchSpec(ManagedBranch* managedBranch, bool isOptional)
+			: branch(managedBranch), optional(isOptional) {}
+	};
+
+	std::list<BranchSpec> m_branches;
+
+public:
+
+	void add(ManagedBranch &branch, bool optional = false);
+
+	void inputFrom(TTree *tree);
+
+	void clearData();
+
+	InputBranchManager();
+	virtual ~InputBranchManager();
+};
+
+
+// Note: Once deprecated methods inputFrom and outputTo have been removed
+// from BranchManager, OutputBranchManager should be changed to inherit
+// from BranchManager
+class OutputBranchManager {
+protected:
+	struct BranchSpec {
+		ManagedBranch* branch;
+		int32_t outputLevel;
+		BranchSpec(ManagedBranch* managedBranch, int32_t branchOutputLevel)
+			: branch(managedBranch), outputLevel(branchOutputLevel) {}
+	};
+
+	std::list<BranchSpec> m_branches;
+
+public:
+
+	void add(ManagedBranch &branch, int32_t outputLevel = 0);
+
+	void outputTo(TTree *tree, int32_t maxOutputLevel = 0);
+
+	void clearData();
+
+	OutputBranchManager();
+	virtual ~OutputBranchManager();
+};
+
 
 
 } // namespace froast
@@ -237,6 +310,8 @@ public:
 #pragma link C++ class froast::VectorBranch<TString>-;
 
 #pragma link C++ class froast::BranchManager-;
+#pragma link C++ class froast::InputBranchManager-;
+#pragma link C++ class froast::OutputBranchManager-;
 #endif
 
 #endif // FROAST_BRANCHMANAGER_H

@@ -37,15 +37,35 @@ const std::vector<TString>& ManagedBranch::names() const {
 }
 
 
-void ManagedBranch::addName(const TString &branchName) {
+ManagedBranch& ManagedBranch::addName(const TString &branchName) {
 	m_names.push_back(branchName);
+	return *this;
+}
+
+ManagedBranch& ManagedBranch::addTo(BranchManager &manager) {
+    manager.add(*this);
+	return *this;
+}
+
+ManagedBranch& ManagedBranch::inputFrom(InputBranchManager &manager, bool optional) {
+	manager.add(*this, optional);
+	return *this;
+}
+
+ManagedBranch& ManagedBranch::outputTo(OutputBranchManager &manager, int32_t outputLevel) {
+	manager.add(*this, outputLevel);
+	return *this;
 }
 
 
-ManagedBranch::ManagedBranch() {}
+ManagedBranch::ManagedBranch()
+	: m_inAvail(false)
+{}
 
 
-ManagedBranch::ManagedBranch(const TString &branchName) {
+ManagedBranch::ManagedBranch(const TString &branchName)
+	: m_inAvail(false)
+{
 	m_names.push_back(branchName);
 }
 
@@ -59,15 +79,15 @@ void BranchManager::add(ManagedBranch &branch) {
 }
 
 
-void BranchManager::outputTo(TTree *tree) {
-	for (std::list<ManagedBranch*>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
-		(**it).outputTo(tree);
-}
-
-
 void BranchManager::inputFrom(TTree *tree) {
 	for (std::list<ManagedBranch*>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
 		(**it).inputFrom(tree);
+}
+
+
+void BranchManager::outputTo(TTree *tree) {
+	for (std::list<ManagedBranch*>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
+		(**it).outputTo(tree);
 }
 
 
@@ -77,12 +97,58 @@ void BranchManager::clearData() {
 }
 
 
-BranchManager::BranchManager() {
+BranchManager::BranchManager() {}
+
+
+BranchManager::~BranchManager() {}
+
+
+
+void InputBranchManager::add(ManagedBranch &branch, bool optional) {
+	m_branches.push_back(BranchSpec(&branch, optional));
 }
 
 
-BranchManager::~BranchManager() {
+void InputBranchManager::inputFrom(TTree *tree) {
+	for (std::list<BranchSpec>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
+		it->branch->inputFrom(tree, 0, it->optional);
 }
+
+
+void InputBranchManager::clearData() {
+	for (std::list<BranchSpec>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
+		it->branch->clear();
+}
+
+
+InputBranchManager::InputBranchManager() {}
+
+
+InputBranchManager::~InputBranchManager() {}
+
+
+
+void OutputBranchManager::add(ManagedBranch &branch, int32_t outputLevel) {
+	m_branches.push_back(BranchSpec(&branch, outputLevel));
+}
+
+
+void OutputBranchManager::outputTo(TTree *tree, int32_t maxOutputLevel) {
+	for (std::list<BranchSpec>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
+		if (it->outputLevel <= maxOutputLevel) it->branch->outputTo(tree, 0);
+}
+
+
+void OutputBranchManager::clearData() {
+	for (std::list<BranchSpec>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
+		it->branch->clear();
+}
+
+
+OutputBranchManager::OutputBranchManager() {}
+
+
+OutputBranchManager::~OutputBranchManager() {}
 
 
 } // namespace froast
