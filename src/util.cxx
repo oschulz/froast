@@ -31,6 +31,33 @@ using namespace std;
 namespace froast {
 
 
+bool Settings::get(const char* name, bool dflt, bool saveDflt) {
+	bool value = gEnv->GetValue(name, dflt) > 0;
+	if (saveDflt && !gEnv->Defined(name)) gEnv->SetValue(name, value);
+	return value;
+}
+
+
+int32_t Settings::get(const char* name, int32_t dflt, bool saveDflt) {
+	int32_t value = gEnv->GetValue(name, dflt);
+	if (saveDflt && !gEnv->Defined(name)) gEnv->SetValue(name, value);
+	return value;
+}
+
+
+double Settings::get(const char* name, double dflt, bool saveDflt) {
+	double value = gEnv->GetValue(name, dflt);
+	if (saveDflt && !gEnv->Defined(name)) gEnv->SetValue(name, value);
+	return value;
+}
+
+const char* Settings::get(const char* name, const char* dflt, bool saveDflt) {
+	const char* value = gEnv->GetValue(name, dflt);
+	if (saveDflt && !gEnv->Defined(name)) gEnv->SetValue(name, value);
+	return value;
+}
+
+
 std::ostream& Settings::write(THashList *settings, std::ostream &out) {
 	assert (settings != 0);
 	TIter next(settings, kIterForward);

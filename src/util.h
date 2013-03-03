@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <stdint.h>
 
 class THashList;
 class TDirectory;
@@ -32,6 +33,11 @@ namespace froast {
 
 class Settings {
 public:
+	static bool get(const char* name, bool dflt, bool saveDflt = true);
+	static int32_t get(const char* name, int32_t dflt, bool saveDflt = true);
+	static double get(const char* name, double dflt, bool saveDflt = true);
+	static const char* get(const char* name, const char* dflt, bool saveDflt = true);
+
 	static std::ostream& write(THashList *settings, std::ostream &out);
 
 	static std::ostream& write(std::ostream &out);
