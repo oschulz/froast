@@ -20,38 +20,10 @@
 
 #include <stdexcept>
 #include <string>
-#include <iostream>
 #include <limits>
-#include <stdint.h>
-
-
-class THashList;
-class TDirectory;
 
 
 namespace froast {
-
-
-
-class Settings {
-public:
-	static bool get(const char* name, bool dflt, bool saveDflt = true);
-	static int32_t get(const char* name, int32_t dflt, bool saveDflt = true);
-	static double get(const char* name, double dflt, bool saveDflt = true);
-	static const char* get(const char* name, const char* dflt, bool saveDflt = true);
-
-	static std::ostream& write(THashList *settings, std::ostream &out);
-
-	static std::ostream& write(std::ostream &out);
-
-	static void writeToGDirectory();
-
-	static THashList* getFrom(TDirectory *tdir);
-
-	static THashList* getCurrent();
-
-	static std::string toString();
-};
 
 
 
@@ -66,7 +38,6 @@ public:
 
 
 #ifdef __CINT__
-#pragma link C++ class froast::Settings-;
 #pragma link C++ class froast::Util-;
 #endif
 

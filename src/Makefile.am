@@ -8,12 +8,14 @@ lib_LTLIBRARIES = libfroast.la
 libfroast_la_SOURCES = \
 	util.cxx \
 	File.cxx \
-	Selector.cxx
+	Selector.cxx \
+	Settings.cxx
 
 libfroast_la_headers = \
 	util.h \
 	File.h \
-	Selector.h
+	Selector.h \
+	Settings.h
 
 pkginclude_HEADERS = $(libfroast_la_headers)
 

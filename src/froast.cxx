@@ -26,6 +26,7 @@
 
 #include "util.h"
 #include "Selector.h"
+#include "Settings.h"
 
 using namespace std;
 using namespace froast;
@@ -39,13 +40,15 @@ int settings(int argc, char *argv[], char *envp[]) {
 	}
 
 	if (argc == 1) {
-		Settings::write(cout);
+		Settings::global().write(cout);
 		return 0;
-	} else if (argc == 2) {
+	} else if ((argc >= 2) && (argc <= 3)) {
 		string inFileName = argv[1];
 		TFile inFile(inFileName.c_str(), "read");
-		THashList *settings = Settings::getFrom(&inFile);
-		Settings::write(settings, cout);
+		Settings settings;
+		if (argc >= 3) settings.read(&inFile, argv[2]);
+		else settings.read(&inFile);
+		settings.write(cout);
 		return 0;
 	} else {
 		cerr << "Syntax: " << argv[0] << " ROOT_FILE" << endl;
