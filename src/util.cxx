@@ -17,8 +17,51 @@
 
 #include "util.h"
 
+#include <sstream>
+#include <cassert>
+
+#include <TEnv.h>
+#include <THashList.h>
+
+
+using namespace std;
+
 
 namespace froast {
+
+
+void Settings::write(std::ostream &out) {
+	THashList *settings = gEnv->GetTable();
+	assert (settings != 0);
+	TIter next(settings, kIterForward);
+	TEnvRec *record;
+	while ((record = (TEnvRec*) next()))
+		if (record->GetLevel() >= kEnvLocal)
+			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
+}
+
+
+void Settings::writeToGDirectory() {
+	THashList settingsOut;
+	settingsOut.SetName("settings");
+	
+	THashList *settings = gEnv->GetTable();
+	assert (settings != 0);
+	TIter next(settings, kIterForward);
+	TEnvRec *record;
+	while ((record = (TEnvRec*) next())) {
+		if (record->GetLevel() >= kEnvLocal)
+			settingsOut.AddLast(record);
+	}
+	settingsOut.Write("settings");
+}
+
+
+std::string Settings::toString() {
+	stringstream out;
+	write(out);
+	return out.str();
+}
 
 
 } // namespace froast

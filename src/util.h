@@ -19,13 +19,28 @@
 #define FROAST_UTIL_H
 
 #include <stdexcept>
+#include <string>
+#include <iostream>
 
 
 namespace froast {
 
 
 
+class Settings {
+public:
+	static void write(std::ostream &out);
+	static void writeToGDirectory();
+	static std::string toString();
+};
+
+
 } // namespace froast
+
+
+#ifdef __CINT__
+#pragma link C++ class froast::Settings-;
+#endif
 
 
 #endif // FROAST_UTIL_H
