@@ -22,6 +22,7 @@
 
 #include <TEnv.h>
 #include <THashList.h>
+#include <TDirectory.h>
 
 
 using namespace std;
@@ -30,30 +31,49 @@ using namespace std;
 namespace froast {
 
 
-void Settings::write(std::ostream &out) {
-	THashList *settings = gEnv->GetTable();
-	assert (settings != 0);
-	TIter next(settings, kIterForward);
-	TEnvRec *record;
-	while ((record = (TEnvRec*) next()))
-		if (record->GetLevel() >= kEnvLocal)
-			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
-}
-
-
-void Settings::writeToGDirectory() {
-	THashList settingsOut;
-	settingsOut.SetName("settings");
-	
-	THashList *settings = gEnv->GetTable();
+std::ostream& Settings::write(THashList *settings, std::ostream &out) {
 	assert (settings != 0);
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
 	while ((record = (TEnvRec*) next())) {
 		if (record->GetLevel() >= kEnvLocal)
-			settingsOut.AddLast(record);
+			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
 	}
-	settingsOut.Write("settings");
+	return out;
+}
+
+
+std::ostream& Settings::write(std::ostream &out) {
+	THashList *settings = getCurrent();
+	return write(settings, out);
+}
+	
+
+void Settings::writeToGDirectory() {
+	THashList settingsOut;
+	settingsOut.SetName("settings");
+	
+	THashList *settings = getCurrent();
+	assert (settings != 0);
+	TIter next(settings, kIterForward);
+	TEnvRec *record;
+	while ((record = (TEnvRec*) next())) {
+		if (record->GetLevel() >= kEnvLocal)
+			settingsOut.AddLast(record->Clone());
+	}
+	settingsOut.Write("settings", TObject::kSingleKey);
+}
+
+
+THashList* Settings::getFrom(TDirectory *tdir) {
+	THashList *settings; tdir->GetObject("settings", settings);
+	if (settings == 0) throw runtime_error(string("No settings found in \"") + tdir->GetName() + "\"");
+	return settings;
+}
+
+
+THashList* Settings::getCurrent() {
+	return gEnv->GetTable();
 }
 
 

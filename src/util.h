@@ -22,6 +22,9 @@
 #include <string>
 #include <iostream>
 
+class THashList;
+class TDirectory;
+
 
 namespace froast {
 
@@ -29,8 +32,16 @@ namespace froast {
 
 class Settings {
 public:
-	static void write(std::ostream &out);
+	static std::ostream& write(THashList *settings, std::ostream &out);
+
+	static std::ostream& write(std::ostream &out);
+
 	static void writeToGDirectory();
+
+	static THashList* getFrom(TDirectory *tdir);
+
+	static THashList* getCurrent();
+
 	static std::string toString();
 };
 
