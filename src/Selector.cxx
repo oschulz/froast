@@ -212,7 +212,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					// I use Util::split here because I can't pass 'global' to Util::match. Yes, it looks stupid indeed.
 					vector<TString> friends;
 					Util::split(selection, ".", friends, TString::kBoth);
-					TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$");
+					TPRegexp friendExpr("^(.*\\W)?([A-z_]+[A-z_0-9]*)$");
 					for (int i=0;i+1<friends.size();i++) {
 						// skip numbers and own chain and already added friend chains
 						if (!friendExpr.Substitute(friends[i], "$2")) continue;
@@ -399,7 +399,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				// I use Util::split here because I can't pass 'global' to Util::match. Yes, it looks stupid indeed.
 				vector<TString> friends;
 				Util::split(selection, ".", friends, TString::kBoth);
-				TPRegexp friendExpr("^(.*\\W)?([A-z_]+)$"), branchExpr("");
+				TPRegexp friendExpr("^(.*\\W)?([A-z_]+[A-z_0-9]*)$");
 				vector<TChain*> friendChains;
 				for (int i=0;i+1<friends.size();i++) {
 					// skip numbers and own chain and already added friend chains
