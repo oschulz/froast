@@ -109,10 +109,4 @@ public:
 } // namespace froast
 
 
-#ifdef __CINT__
-#pragma link C++ class froast::Param-;
-#pragma link C++ class froast::Settings-;
-#pragma link C++ class froast::GSettings-;
-#endif
-
 #endif // FROAST_SETTINGS_H

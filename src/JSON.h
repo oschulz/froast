@@ -45,8 +45,4 @@ public:
 } // namespace froast
 
 
-#ifdef __CINT__
-#pragma link C++ class froast::JSON-;
-#endif
-
 #endif // FROAST_JSON_H

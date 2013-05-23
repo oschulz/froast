@@ -98,8 +98,4 @@ public:
 } // namespace froast
 
 
-#ifdef __CINT__
-#pragma link C++ class froast::Selector-;
-#endif
-
 #endif // FROAST_SELECTOR_H
