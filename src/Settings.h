@@ -18,6 +18,7 @@
 #ifndef FROAST_SETTINGS_H
 #define FROAST_SETTINGS_H
 
+#include <iostream>
 #include <vector>
 #include <stdint.h>
 
@@ -77,11 +78,16 @@ public:
 
 	void write(const TString &fileName, EEnvLevel minLevel = kEnvLocal);
 	void read(const TString &fileName, EEnvLevel level = kEnvLocal);
-	
+
+	void writeJSON(std::ostream &out, EEnvLevel minLevel = kEnvLocal);
+	void readJSON(std::istream &in, EEnvLevel level = kEnvLocal);
+
 	std::ostream& write(std::ostream &out, EEnvLevel minLevel = kEnvLocal);
 
 	void read(TDirectory *tdir, const TString &name = "settings");
 	void writeToGDirectory(const TString &name = "settings", EEnvLevel minLevel = kEnvLocal);
+
+	void readAuto(const TString &fileName, EEnvLevel level = kEnvLocal);
 
 	std::string toString();
 	
@@ -103,6 +109,9 @@ public:
 	static int32_t get(const char* name, int32_t dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
 	static double get(const char* name, double dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
 	static const char* get(const char* name, const char* dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
+
+	static void readAuto(const TString &fileName, EEnvLevel level = kEnvLocal)
+		{ Settings::global().readAuto(fileName, level); }
 };
 
 

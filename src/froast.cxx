@@ -22,7 +22,6 @@
 #include <cstring>
 
 #include <TROOT.h>
-#include <TFile.h>
 #include <THashList.h>
 
 #include "../config.h"
@@ -80,37 +79,9 @@ int settings(int argc, char *argv[], char *envp[]) {
 	} else if (nargs == 1) {
 		Settings settings;
 		TString inFileName(args[0]);
-		TString objSpecSep(".root/");
-		if (inFileName.EndsWith(".root") || inFileName.Contains(objSpecSep)) {
-			TString rootFileName = inFileName;
-			TString settingsName = "";
-			int idx = inFileName.Index(objSpecSep);
-			if (idx >= 0) {
-				rootFileName = inFileName(0, idx + objSpecSep.Length() - 1);
-				settingsName = inFileName(idx + objSpecSep.Length(), inFileName.Length() - idx - objSpecSep.Length());
-			}
-			TFile inFile(rootFileName.Data(), "read");
-			if (settingsName.Length() > 0) settings.read(&inFile, settingsName.Data());
-			else settings.read(&inFile);
-		} else if (inFileName.EndsWith(".rootrc")) {
-			settings.read(inFileName);
-		} else if (inFileName=="-" || inFileName.EndsWith("/stdin")) {
-			// yes this isn't super-safe for instance on ./stdin but who would name a file 'stdin'????
-			settings.read(TString("/dev/stdin"));
-		} else if (inFileName.EndsWith(".json")) {
-			ifstream in(inFileName.Data());
-			THashList *nested = JSON::read(in);
-			settings.importNested(nested);
-			delete nested;
-		} else {
-			cerr << "Unknown file extension, can't read settings from \"" << inFileName << "\"." << endl;
-			return 1;
-		}
-		if (jsonOutput) {
-			THashList *nested = settings.exportNested();
-			JSON::write(cout, nested) << endl;
-			delete nested;
-		} else settings.write(cout);
+		settings.readAuto(inFileName);
+		if (jsonOutput) settings.writeJSON(cout);
+		else settings.write(cout);
 		return 0;
 	} else {
 		cerr << "Syntax: " << args[0] << " [-j] ROOT_FILE SETTINGS" << endl;

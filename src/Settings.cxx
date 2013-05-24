@@ -20,10 +20,11 @@
 #include <string>
 #include <set>
 #include <sstream>
-#include <iostream>
 #include <fstream>
 #include <limits>
 #include <algorithm>
+#include <memory>
+#include <stdexcept>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -33,6 +34,7 @@
 #include <TMap.h>
 #include <TParameter.h>
 #include <TPRegexp.h>
+#include <TFile.h>
 
 #include "util.h"
 #include "JSON.h"
@@ -239,6 +241,18 @@ void Settings::read(const TString &fileName, EEnvLevel level) {
 }
 
 
+void Settings::writeJSON(std::ostream &out, EEnvLevel minLevel) {
+	auto_ptr<THashList> nested(exportNested(minLevel));
+	JSON::write(out, &(*nested)) << endl;
+}
+
+
+void Settings::readJSON(std::istream &in, EEnvLevel level) {
+	auto_ptr<THashList> nested(JSON::read(in));
+	importNested(&(*nested), level);
+}
+
+
 std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
 	THashList *settings = table();
 	if (settings == 0) return out;
@@ -281,6 +295,34 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
 		if (record->GetLevel() >= minLevel)
 			settingsOut.AddLast(record->Clone());
 	settingsOut.Write(name.Data(), TObject::kSingleKey);
+}
+
+
+void Settings::readAuto(const TString &fileName, EEnvLevel level) {
+	TString objSpecSep(".root/");
+	if (fileName.EndsWith(".root") || fileName.Contains(objSpecSep)) {
+		TString rootFileName = fileName;
+		TString settingsName = "";
+		int idx = fileName.Index(objSpecSep);
+		if (idx >= 0) {
+			rootFileName = fileName(0, idx + objSpecSep.Length() - 1);
+			settingsName = fileName(idx + objSpecSep.Length(), fileName.Length() - idx - objSpecSep.Length());
+		}
+		TFile inFile(rootFileName.Data(), "read");
+		if (settingsName.Length() > 0) read(&inFile, settingsName.Data());
+		else read(&inFile);
+	} else if (fileName.EndsWith("rootrc")) {
+		read(fileName, level);
+	} else if (fileName=="-" || fileName.EndsWith("/stdin")) {
+		// yes this isn't super-safe for instance on ./stdin but who would name a file 'stdin'????
+		//!! TODO: Deprecate support for "/stdin"
+		read(TString("/dev/stdin"), level);
+	} else if (fileName.EndsWith(".json")) {
+		ifstream in(fileName.Data());
+		readJSON(in, level);
+	} else {
+		throw invalid_argument((TString("Unknown file extension, can't read settings from \"") + fileName + "\".").Data());
+	}
 }
 
 
