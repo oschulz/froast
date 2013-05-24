@@ -36,7 +36,7 @@ void Util::copy(const TCollection *from, std::vector<TString> &to, TString::EStr
 	to.resize(n);
 	TIter next(from, kIterForward);
 	TObject *entry;
-	for (int i = 0; entry = next(); ++i) {
+	for (int i = 0; (entry = next()); ++i) {
 		if (entry != 0) {
 			const TObjString *s = dynamic_cast<TObjString*>(entry);
 			if (s == 0) throw invalid_argument("TObjArray contains an element which is not of expected type TString.");

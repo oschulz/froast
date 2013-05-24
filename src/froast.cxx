@@ -134,14 +134,14 @@ int map_single(int argc, char *argv[], char *envp[]) {
 
 
 int map_multi(int argc, char *argv[], char *envp[]) {
-	const size_t firstInputArg = 3;
+	const ssize_t firstInputArg = 3;
 	if (argc <= firstInputArg) {
 		cerr << "Syntax: " << argv[0] << " MAPPERS TAG [INPUT]..." << endl;
 		return 1;
 	}
 	string mappers = argv[1];
 	string tag = argv[2];
-	for (size_t arg = firstInputArg; arg < argc; ++arg) {
+	for (ssize_t arg = firstInputArg; arg < argc; ++arg) {
 		// -> inputfilename(s), mappers, filename extension tag, bool noRecompile
 		// By default the selector is compiled (++ ROOT compile option).
 		// If there are more than one inputfile, the selector is not recompiled
@@ -152,7 +152,7 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 }
 
 int reduce(int argc, char *argv[], char *envp[]) {
-	const size_t firstInputArg = 3;
+	const ssize_t firstInputArg = 3;
 	if (argc <= firstInputArg) {
 		cerr << "Syntax: " << argv[0] << " MAPPERS OUTPUT_FILE [INPUT]..." << endl;
 		return 1;
@@ -160,7 +160,7 @@ int reduce(int argc, char *argv[], char *envp[]) {
 	string mappers = argv[1];
 	string outFileName = argv[2];
 	string inFiles = argv[firstInputArg];
-	for (size_t arg = firstInputArg+1; arg < argc; ++arg) {
+	for (ssize_t arg = firstInputArg+1; arg < argc; ++arg) {
 		inFiles+=" ";
 		inFiles+=argv[arg];
 	}

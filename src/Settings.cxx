@@ -85,7 +85,7 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while ( (record = dynamic_cast<TEnvRec*>(next())) ) {
 		TString name(record->GetName());
 		if (
 			(name.Length() > pre.Length() + post.Length())
@@ -150,7 +150,7 @@ THashList* Settings::exportNested(EEnvLevel minLevel) const {
 
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while ( (record = dynamic_cast<TEnvRec*>(next())) ) {
 		TString name(record->GetName());
 		TString valueString = TString(record->GetValue()).Strip(TString::kBoth);
 		const char *valueCString = valueString.Data();
@@ -204,10 +204,9 @@ THashList* Settings::exportNested(EEnvLevel minLevel) const {
 
 
 void Settings::importNested(const THashList *nested, EEnvLevel level, const TString &prefix) {
-	int counter = 0;
 	TIter next(nested, kIterForward);
 	const TPair *member;
-	while (member = dynamic_cast<const TPair*>(next())) {
+	while ( (member = dynamic_cast<const TPair*>(next())) ) {
 		const TObjString *keyObj = dynamic_cast<const TObjString*>(member->Key());
 		assert( keyObj != 0 );
 		TString key = keyObj->GetString();
@@ -246,7 +245,7 @@ std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
 
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while ( (record = dynamic_cast<TEnvRec*>(next())) ) {
 		if (record->GetLevel() >= minLevel)
 			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
 	}

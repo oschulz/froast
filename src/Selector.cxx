@@ -132,7 +132,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 	/// Mappers (selectors, draw/scan options) are separated by ";"
 	Util::split(mappers, ";", mapperSpecs, TString::kBoth);
 	
-	for (int m = 0; m < mapperSpecs.size(); ++m) {
+	for (size_t m = 0; m < mapperSpecs.size(); ++m) {
 		
 		vector<TString> mapperFctArgs; 
 		Util::match(mapperSpecs[m], mapperSpecExpr, mapperFctArgs, TString::kBoth);
@@ -163,7 +163,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 				///	copied to a new file. Up to 5 arguments are allowed, example \n
 				///	copy(tree, branches, selection, nentries, firstentry)
 				if (fctArgs.size() <= 1) {
-					TTree *copied = inTree->CloneTree();
+					inTree->CloneTree();
 				} else {
 					///	The ordering of the arguments to the mapper are expected to be
 					///	<ol>
@@ -216,7 +216,7 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 					vector<TString> friends;
 					Util::split(selection, ".", friends, TString::kBoth);
 					TPRegexp friendExpr("^(.*\\W)?([A-z_]+[A-z_0-9]*)$");
-					for (int i=0;i+1<friends.size();i++) {
+					for (size_t i=0; i+1 < friends.size(); i++) {
 						// skip numbers and own chain and already added friend chains
 						if (!friendExpr.Substitute(friends[i], "$2")) continue;
 						if (friends[i]==inTree->GetName()) continue;
@@ -325,7 +325,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 	/// Mappers (selectors, draw/scan options) are separated by ";"
 	Util::split(mappers, ";", mapperSpecs, TString::kBoth);
 	
-	for (int m = 0; m < mapperSpecs.size(); ++m) {
+	for (size_t m = 0; m < mapperSpecs.size(); ++m) {
 		vector<TString> mapperFctArgs; 
 		static TPRegexp mapperSpecExpr("^([^(]*)\\((.*)\\)$");
 		Util::match(mapperSpecs[m], mapperSpecExpr, mapperFctArgs, TString::kBoth);
@@ -354,7 +354,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 			throw runtime_error(string("Object ") + objName.Data() + " not found in TDirectory");
 		if (fctName == "copy")
 			if (fctArgs.size() <= 1) {
-				TTree *copied = inChain.CloneTree();
+				inChain.CloneTree();
 			} else {
 				///	The ordering of the arguments to the mapper are expected to be
 				///	<ol>
@@ -404,7 +404,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 				Util::split(selection, ".", friends, TString::kBoth);
 				TPRegexp friendExpr("^(.*\\W)?([A-z_]+[A-z_0-9]*)$");
 				vector<TChain*> friendChains;
-				for (int i=0;i+1<friends.size();i++) {
+				for (size_t i=0; i+1 < friends.size(); i++) {
 					// skip numbers and own chain and already added friend chains
 					if (!friendExpr.Substitute(friends[i], "$2")) continue;
 					if (friends[i]==inChain.GetName()) continue;
@@ -558,7 +558,7 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 	vector<double> doubleValues(ncols);
 
 	TTreeFormulaManager *manager=0;
-	Bool_t hasArray = false;
+	// Bool_t hasArray = false;
 	Bool_t forceDim = false;
 	if (!tformulas.IsEmpty()) {
 		if (select) {
@@ -572,7 +572,7 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 		for (int i = 0; i <= tformulas.LastIndex(); ++i) {
 			TTreeFormula *form = dynamic_cast<TTreeFormula*>(tformulas.At(i));
 			switch( form->GetManager()->GetMultiplicity() ) {
-				case  1: case  2: hasArray = true;
+				case  1: case  2: // hasArray = true;
 				case -1: forceDim = true;
 			}
 		}

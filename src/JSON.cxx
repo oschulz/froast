@@ -93,7 +93,7 @@ void exportJSON(ostream &json, const TObject* value) {
 			json << "{";
 			TIter next(objectValue, kIterForward);
 			const TPair *member;
-			while (member = dynamic_cast<const TPair*>(next())) {
+			while ( (member = dynamic_cast<const TPair*>(next())) ) {
 				if (counter > 0) json << ", ";
 				assert(dynamic_cast<const TObjString*>(member->Key()));
 				exportJSON(json, member->Key());
@@ -115,7 +115,7 @@ void exportJSON(ostream &json, const TObject* value) {
 			json << "[";
 			TIter next(arrayValue, kIterForward);
 			TObject *member;
-			while (member = next()) {
+			while ( (member = next()) ) {
 				if (counter > 0) json << ", ";
 				exportJSON(json, member);
 				++counter;
