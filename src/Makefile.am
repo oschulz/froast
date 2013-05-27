@@ -7,6 +7,7 @@ lib_LTLIBRARIES = libfroast.la
 
 libfroast_la_SOURCES = \
 	util.cxx \
+	logging.cxx \
 	block_allocator.cxx vjson.cxx \
 	BranchManager.cxx \
 	File.cxx \
@@ -16,6 +17,7 @@ libfroast_la_SOURCES = \
 
 libfroast_la_headers = \
 	util.h \
+	logging.h \
 	block_allocator.h vjson.h \
 	BranchManager.h \
 	File.h \
