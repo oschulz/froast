@@ -48,6 +48,9 @@
 #pragma link C++ class froast::Settings-;
 #pragma link C++ class froast::GSettings-;
 
+// TH1Tools.h
+#pragma link C++ class froast::TH1Tools-;
+
 #endif // __CINT__
 
 
