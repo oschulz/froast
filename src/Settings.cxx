@@ -119,27 +119,27 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 
 bool Settings::operator()(const char* name, bool dflt, bool saveDflt) {
 	bool value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt) > 0;
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, Form("%d", value ? 1 : 0), kEnvLocal);
 	return value;
 }
 
 
 int32_t Settings::operator()(const char* name, int32_t dflt, bool saveDflt) {
 	int32_t value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, Form("%ld", (long int)(value)), kEnvLocal);
 	return value;
 }
 
 
 double Settings::operator()(const char* name, double dflt, bool saveDflt) {
 	double value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, Form("%g", value), kEnvLocal);
 	return value;
 }
 
 const char* Settings::operator()(const char* name, const char* dflt, bool saveDflt) {
 	const char* value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value, kEnvLocal);
 	return value;
 }
 
