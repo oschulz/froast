@@ -61,7 +61,7 @@ protected:
 public:
 	static Settings &global() { return m_global; }
 
-	void getInstances(const TString &pattern, std::vector<int32_t> &instances);
+	void getInstances(const TString &pattern, std::vector<int32_t> &instances) const;
 
 	bool operator()(const char* name, bool dflt, bool saveDflt = true);
 	int32_t operator()(const char* name, int32_t dflt, bool saveDflt = true);
@@ -76,20 +76,20 @@ public:
 	THashList* exportNested(EEnvLevel minLevel = kEnvLocal) const;
 	void importNested(const THashList *nested, EEnvLevel level = kEnvLocal, const TString &prefix = "");
 
-	void write(const TString &fileName, EEnvLevel minLevel = kEnvLocal);
+	void write(const TString &fileName, EEnvLevel minLevel = kEnvLocal) const;
 	void read(const TString &fileName, EEnvLevel level = kEnvLocal);
 
-	void writeJSON(std::ostream &out, EEnvLevel minLevel = kEnvLocal);
+	void writeJSON(std::ostream &out, EEnvLevel minLevel = kEnvLocal) const;
 	void readJSON(std::istream &in, EEnvLevel level = kEnvLocal);
 
-	std::ostream& write(std::ostream &out, EEnvLevel minLevel = kEnvLocal);
+	std::ostream& write(std::ostream &out, EEnvLevel minLevel = kEnvLocal) const;
 
 	void read(TDirectory *tdir, const TString &name = "settings");
-	void writeToGDirectory(const TString &name = "settings", EEnvLevel minLevel = kEnvLocal);
+	void writeToGDirectory(const TString &name = "settings", EEnvLevel minLevel = kEnvLocal) const;
 
 	void readAuto(const TString &fileName, EEnvLevel level = kEnvLocal);
 
-	std::string toString();
+	std::string toString() const;
 	
 	void clear();
 

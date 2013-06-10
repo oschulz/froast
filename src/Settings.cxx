@@ -71,7 +71,7 @@ Param::~Param() {}
 Settings Settings::m_global(gEnv, false);
 	
 
-void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instances) {
+void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instances) const {
 	set<int32_t> found;
 	instances.clear();
 	
@@ -229,7 +229,7 @@ void Settings::importNested(const THashList *nested, EEnvLevel level, const TStr
 
 
 
-void Settings::write(const TString &fileName, EEnvLevel minLevel) {
+void Settings::write(const TString &fileName, EEnvLevel minLevel) const {
 	ofstream out(fileName.Data());
 	write(out, minLevel);
 	out.close();
@@ -241,7 +241,7 @@ void Settings::read(const TString &fileName, EEnvLevel level) {
 }
 
 
-void Settings::writeJSON(std::ostream &out, EEnvLevel minLevel) {
+void Settings::writeJSON(std::ostream &out, EEnvLevel minLevel) const {
 	auto_ptr<THashList> nested(exportNested(minLevel));
 	JSON::write(out, &(*nested)) << endl;
 }
@@ -253,8 +253,8 @@ void Settings::readJSON(std::istream &in, EEnvLevel level) {
 }
 
 
-std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
-	THashList *settings = table();
+std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) const {
+	const THashList *settings = table();
 	if (settings == 0) return out;
 
 	TIter next(settings, kIterForward);
@@ -278,11 +278,11 @@ void Settings::read(TDirectory *tdir, const TString &name) {
 }
 
 
-void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
+void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) const {
 	THashList settingsOut;
 	settingsOut.SetName(name.Data());
 	
-	THashList *settings = table();
+	const THashList *settings = table();
 	assert (settings != 0);
 	TIter next(settings, kIterForward);
 	while (TEnvRec* record = dynamic_cast<TEnvRec*>(next())) {
@@ -326,7 +326,7 @@ void Settings::readAuto(const TString &fileName, EEnvLevel level) {
 }
 
 
-std::string Settings::toString() {
+std::string Settings::toString() const {
 	stringstream out;
 	write(out);
 	return out.str();
