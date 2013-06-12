@@ -38,9 +38,17 @@ enum LogLevel {
 
 extern LogLevel g_logLevel;
 
+inline LogLevel log_level() { return g_logLevel; }
 void log_level(LogLevel level);
 void log_level(const char* level);
 void log_level(const std::string &level);
+
+LogLevel string2LogLevel(const char *level);
+const char* logLevel2String(LogLevel level);
+
+void logLevelName(LogLevel level);
+
+inline bool log_enabled(LogLevel level) { return level >= g_logLevel; }
 
 inline void log_to(std::ostream &stream);
 
@@ -53,6 +61,21 @@ void log_warn_impl(const char *fmt, ...);
 void log_error_impl(const char *fmt, ...);
 
 inline void log_nothing_impl() {}
+
+
+class TmpLogLevel {
+protected:
+	LogLevel m_storedLogLevel;
+
+public:
+	TmpLogLevel(LogLevel level) {
+		m_storedLogLevel = log_level();
+		log_level(level);
+	}
+
+	virtual ~TmpLogLevel()
+		{ log_level(m_storedLogLevel); }
+};
 
 
 } // namespace froast
