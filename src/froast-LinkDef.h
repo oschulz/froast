@@ -51,6 +51,9 @@
 // TH1Tools.h
 #pragma link C++ class froast::TH1Tools-;
 
+// TreeMapperSel.h
+#pragma link C++ class froast::TreeMapperSel+;
+
 #endif // __CINT__
 
 
