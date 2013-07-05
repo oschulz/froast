@@ -19,6 +19,8 @@
 
 #include <iostream>
 
+#include "Settings.h"
+
 
 using namespace std;
 
@@ -80,6 +82,9 @@ void BranchManager::add(ManagedBranch &branch) {
 
 
 void BranchManager::inputFrom(TTree *tree) {
+	int inputCacheSize = GSettings::get("froast.input.ttree.cache", -1);
+	tree->SetCacheSize(inputCacheSize);
+	tree->SetBranchStatus("*", false);
 	for (std::list<ManagedBranch*>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
 		(**it).inputFrom(tree);
 }
@@ -110,6 +115,9 @@ void InputBranchManager::add(ManagedBranch &branch, bool optional) {
 
 
 void InputBranchManager::inputFrom(TTree *tree) {
+	int inputCacheSize = GSettings::get("froast.input.ttree.cache", -1);
+	tree->SetCacheSize(inputCacheSize);
+	tree->SetBranchStatus("*", false);
 	for (std::list<BranchSpec>::iterator it = m_branches.begin(); it != m_branches.end(); ++it)
 		it->branch->inputFrom(tree, 0, it->optional);
 }

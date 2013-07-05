@@ -80,9 +80,15 @@ public:
 template <typename Value> ManagedBranch& ManagedBranch::inputValueFrom(Value &value, TTree *tree, const char* branchName, bool optional) {
 	if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) { m_inAvail = true; return *this; }
 	else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
-		// TChain::SetBranchAddress returns kNoCheck in every case, so:
-		if ( (tree->GetBranch(it->Data())) && (tree->SetBranchAddress(it->Data(), &value) >= 0) )
-			{ m_inAvail = true; return *this; }
+		// TChain::SetBranchAddress seems to return kNoCheck in every case, so:
+		if (tree->GetBranch(it->Data())) {
+			tree->SetBranchStatus(it->Data(), true);
+			if (tree->SetBranchAddress(it->Data(), &value) >= 0) {
+				tree->AddBranchToCache(it->Data());
+				m_inAvail = true;
+				return *this;
+			}
+		}
 	}
 	m_inAvail = false;
 	if (!optional) throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
