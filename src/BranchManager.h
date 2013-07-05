@@ -199,6 +199,11 @@ public:
 	std::vector<A>& operator=(const std::vector<A> &v) { return (*value) = v; }
 
 	void push_back(const A &x) { value->push_back(x); }
+
+	typename std::vector<A>::iterator begin() { return value->begin(); }
+	typename std::vector<A>::const_iterator begin() const { return value->begin(); }
+	typename std::vector<A>::iterator end() { return value->end(); }
+	typename std::vector<A>::const_iterator end() const { return value->end(); }
 	
 	operator std::vector<A>& () { return *value; }
 	operator const std::vector<A>& () const { return *value; }
