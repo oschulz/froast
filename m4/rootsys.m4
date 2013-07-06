@@ -13,7 +13,7 @@ AC_DEFUN([ROOTSYS_DEPS],
 	ROOTSYS_EXTRA_LIBS="$2"
 	
 	AC_REQUIRE([ROOT_PATH])
-	AC_CHECK_PROGS(RLIBMAP, rlibmap, false)
+	AC_PATH_PROG(RLIBMAP, rlibmap, false, $rootbin)
 	if test "${RLIBMAP}" = false; then AC_MSG_ERROR([Need rlibmap.]); fi
 	
 	ROOTSYS_CFLAGS="$ROOTCFLAGS $ROOTAUXCFLAGS"
