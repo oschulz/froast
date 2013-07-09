@@ -150,6 +150,9 @@ public:
 
 	A& content() { return *value; }
 	const A& content() const { return *value; }
+
+	A& operator()() { return *value; }
+	const A& operator()() const { return *value; }
 	
 	A& operator=(const A &v) { return (*value) = v; }
 	
@@ -183,6 +186,9 @@ public:
 
 	std::vector<A>& content() { return *value; }
 	const std::vector<A>& content() const { return *value; }
+
+	std::vector<A>& operator()() { return *value; }
+	const std::vector<A>& operator()() const { return *value; }
 	
 	bool empty() { return value->empty(); }
 	size_t size() { return value->size(); }
