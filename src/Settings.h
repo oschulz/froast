@@ -61,6 +61,8 @@ protected:
 public:
 	static Settings &global() { return m_global; }
 
+	bool defined(const char* name);
+
 	void getInstances(const TString &pattern, std::vector<int32_t> &instances) const;
 
 	bool operator()(const char* name, bool dflt, bool saveDflt = true);

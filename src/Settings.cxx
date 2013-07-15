@@ -71,6 +71,11 @@ Param::~Param() {}
 Settings Settings::m_global(gEnv, false);
 	
 
+bool Settings::defined(const char* name) {
+	return tenv()->Defined(name);
+}
+
+
 void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instances) const {
 	std::set<int32_t> found;
 	instances.clear();
