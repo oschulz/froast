@@ -55,7 +55,7 @@ class Settings {
 protected:
 	static Settings m_global;
 
-	TEnv *m_env, outgoing;
+	TEnv *m_env;
 	bool m_envOwned;
 	
 public:
@@ -67,7 +67,12 @@ public:
 	int32_t operator()(const char* name, int32_t dflt, bool saveDflt = true);
 	double operator()(const char* name, double dflt, bool saveDflt = true);
 	const char* operator()(const char* name, const char* dflt, bool saveDflt = true);
-	
+
+	bool set(const char* name, bool value, EEnvLevel level = kEnvLocal);
+	int32_t set(const char* name, int32_t value, EEnvLevel level = kEnvLocal);
+	double set(const char* name, double value, EEnvLevel level = kEnvLocal);
+	const char* set(const char* name, const char* value, EEnvLevel level = kEnvLocal);
+
 	const TEnv* tenv() const { return m_env; }
 	TEnv* tenv() { return m_env; }
 	const THashList* table() const { return tenv()->GetTable(); }

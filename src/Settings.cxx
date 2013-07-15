@@ -72,7 +72,7 @@ Settings Settings::m_global(gEnv, false);
 	
 
 void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instances) const {
-	set<int32_t> found;
+	std::set<int32_t> found;
 	instances.clear();
 	
 	TString pre, post;
@@ -116,30 +116,68 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 	copy(found.begin(), found.end(), instances.begin());
 }
 
-
+#include <iostream>
 bool Settings::operator()(const char* name, bool dflt, bool saveDflt) {
-	bool value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt) > 0;
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, Form("%d", value ? 1 : 0), kEnvLocal);
+	bool value = dflt;
+	bool saveValue = false;
+
+	if (tenv()->Defined(name)) {
+		const char* strVal =  tenv()->GetValue(name, "");
+		if (strcmp(strVal, "true") == 0) value = true;
+		else if (strcmp(strVal, "false") == 0) value = false;
+		else value = ( tenv()->GetValue(name, int32_t(dflt)) ) > 0 ? true : false;
+	}
+	else saveValue = true;
+
+	if (saveValue) set(name, value, kEnvLocal);
 	return value;
 }
 
 
 int32_t Settings::operator()(const char* name, int32_t dflt, bool saveDflt) {
-	int32_t value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, Form("%ld", (long int)(value)), kEnvLocal);
+	bool saveValue = saveDflt && !tenv()->Defined(name);
+	int32_t value = tenv()->GetValue(name, dflt);
+	if (saveValue) set(name, value, kEnvLocal);
 	return value;
 }
 
 
 double Settings::operator()(const char* name, double dflt, bool saveDflt) {
-	double value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, Form("%g", value), kEnvLocal);
+	bool saveValue = saveDflt && !tenv()->Defined(name);
+	double value = tenv()->GetValue(name, dflt);
+	if (saveValue) set(name, value, kEnvLocal);
 	return value;
 }
 
+
 const char* Settings::operator()(const char* name, const char* dflt, bool saveDflt) {
-	const char* value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value, kEnvLocal);
+	bool saveValue = saveDflt && !tenv()->Defined(name);
+	const char* value = tenv()->GetValue(name, dflt);
+	if (saveValue) set(name, value, kEnvLocal);
+	return value;
+}
+
+
+bool Settings::set(const char* name, bool value, EEnvLevel level) {
+	tenv()->SetValue(name, value ? "true" : "false", level);
+	return value;
+}
+
+
+int32_t Settings::set(const char* name, int32_t value, EEnvLevel level) {
+	tenv()->SetValue(name, Form("%ld", (long int)(value)), level);
+	return value;
+}
+
+
+double Settings::set(const char* name, double value, EEnvLevel level) {
+	tenv()->SetValue(name, Form("%g", value), level);
+	return value;
+}
+
+
+const char* Settings::set(const char* name, const char* value, EEnvLevel level) {
+	tenv()->SetValue(name, value, level);
 	return value;
 }
 
@@ -290,7 +328,7 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) const 
 		if ((record->GetLevel() >= minLevel) && !name.Contains("Path"))
 			settingsOut.AddLast(record->Clone());
 	}
-	next=TIter(outgoing.GetTable(), kIterForward);
+	next=TIter(tenv()->GetTable(), kIterForward);
 	while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
 		if (record->GetLevel() >= minLevel)
 			settingsOut.AddLast(record->Clone());
