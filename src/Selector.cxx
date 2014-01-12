@@ -490,7 +490,7 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 
 // Based in part on TTreePlayer::scan (Copyright (C) 1995-2000, Rene Brun
 // and Fons Rademakers)
-void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+void Selector::tabulate(TTree *chain, std::ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
 	cerr << TString::Format("Selector::tabulate(TChain*, ostream, \"%s\", \"%s\")", varexp.Data(), selection.Data()) << endl;
 
 	ssize_t logEvery = GSettings::get("selector.log.every", 10000);

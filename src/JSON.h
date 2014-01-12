@@ -32,13 +32,13 @@ namespace froast {
 class JSON {
 public:
 	static THashList* read(const char* json);
-	static THashList* read(istream &json);
+	static THashList* read(std::istream &json);
 	static THashList* read(const std::string &json);
 	static THashList* read(const TString &json);
 
 	static std::string toString(const TObject* list);
 
-	static ostream& write(ostream &json, const TObject* list);
+	static std::ostream& write(std::ostream &json, const TObject* list);
 };
 
 
