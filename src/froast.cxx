@@ -73,6 +73,41 @@ void writeSettings(const Settings &settings, const std::string &format) {
 }
 
 
+// Format of inputSpec: TFILE_NAME + "/" + TREE_NAME
+TChain* openTChain(const TString &inputSpec) {
+	ssize_t splitPos = inputSpec.Last('/');
+	if ((splitPos < 0) || (splitPos >= inputSpec.Length()-1))
+		throw invalid_argument("No tree name in input specification");
+
+	TString inFileName = inputSpec(0, splitPos);
+	TString treeName = inputSpec(splitPos + 1, inputSpec.Length() - splitPos - 1);
+	TChain *chain = new TChain(treeName);
+
+	if (inFileName.First('*')>=inFileName.Last('/')) {
+		chain->Add(inFileName);
+	    // O. Reinecke: this should assist the TChain with its retarded shell expansion
+	} else {
+		TObjArray &files=*chain->GetListOfFiles();
+		chain->Add((TString)inFileName(0,splitPos=inFileName.First('/')));
+		int length=files.GetEntries();
+		inFileName.Remove(0,splitPos+1);
+		while (inFileName.Length()>0 && length>0) {
+			splitPos=inFileName.First('/');
+			if (splitPos<0) splitPos=inFileName.Length();
+			for (int entry=0;entry<length;entry++)
+				chain->Add(TString(files[entry]->GetTitle())+"/"+inFileName(0,splitPos));
+			files.RemoveRange(0,length-1);
+			files.Compress();
+			length=files.GetEntries();
+			inFileName.Remove(0,splitPos+1);
+		}
+		// O. Reinecke: it seems that the operation above messes up chain's file list, so let's just rebuild it here:
+		TObjArray a(*(TObjArray*)files.Clone()); chain->Reset();
+		for (int entry=0;entry<length;entry++) chain->Add(a[entry]->GetTitle());
+	}
+}
+
+
 void settings_printUsage(const char* progName) {
 	cerr << "Syntax: " << progName << " [OPTIONS] [SETTINGS].." << endl;
 	cerr << "" << endl;
@@ -285,40 +320,12 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 	ssize_t nEntries = (optind < argc) ? atol(argv[optind++]) : -1;
 	ssize_t startEntry = (optind < argc) ? atol(argv[optind++]) : 0;
 
-	ssize_t splitPos = input.Last('/');
-	if ((splitPos < 0) || (splitPos >= input.Length()-1)) {
-		cerr << "Error: No tree name specified."  << endl;
-		return 1;
-	}
-	TString inFileName = input(0, splitPos);
-	TString treeName = input(splitPos + 1, input.Length() - splitPos - 1);
-	TChain chain(treeName);
+	TChain *chain = openTChain(input);
 
-	if (inFileName.First('*')>=inFileName.Last('/'))
-		chain.Add(inFileName);
-	// this should assist the TChain with its retarded shell expansion
-	else {
-		TObjArray &files=*chain.GetListOfFiles();
-		chain.Add((TString)inFileName(0,splitPos=inFileName.First('/')));
-		int length=files.GetEntries();
-		inFileName.Remove(0,splitPos+1);
-		while (inFileName.Length()>0 && length>0) {
-			splitPos=inFileName.First('/');
-			if (splitPos<0) splitPos=inFileName.Length();
-			for (int entry=0;entry<length;entry++)
-				chain.Add(TString(files[entry]->GetTitle())+"/"+inFileName(0,splitPos));
-			files.RemoveRange(0,length-1);
-			files.Compress();
-			length=files.GetEntries();
-			inFileName.Remove(0,splitPos+1);
-		}
-		// it seems that the operation above messes up chain's file list, so let's just rebuild it here:
-		TObjArray a(*(TObjArray*)files.Clone()); chain.Reset();
-		for (int entry=0;entry<length;entry++) chain.Add(a[entry]->GetTitle());
-	}
+	log_debug("Selector::tabulate(\"%s\", cout, \"%s\", \"%s\", %li, %li)", chain->GetName(), varexp.Data(), selection.Data(), (long int)nEntries, (long int)startEntry);
+	Selector::tabulate(chain, cout, varexp, selection, nEntries, startEntry);
 
-	log_debug("Selector::tabulate(\"%s\", cout, \"%s\", \"%s\", %li, %li)", chain.GetName(), varexp.Data(), selection.Data(), (long int)nEntries, (long int)startEntry);
-	Selector::tabulate(&chain, cout, varexp, selection, nEntries, startEntry);
+	delete chain;
 	
 	return 0;
 }
