@@ -15,6 +15,7 @@ libfroast_la_SOURCES = \
 	Selector.cxx \
 	Settings.cxx \
 	TH1Tools.cxx \
+	TreeEntryList.cxx \
 	TreeMapperSel.cxx
 
 libfroast_la_headers = \
@@ -27,6 +28,7 @@ libfroast_la_headers = \
 	Selector.h \
 	Settings.h \
 	TH1Tools.h \
+	TreeEntryList.h \
 	TreeMapperSel.h
 
 pkginclude_HEADERS = $(libfroast_la_headers)

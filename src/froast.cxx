@@ -32,7 +32,7 @@
 #include "util.h"
 #include "Selector.h"
 #include "Settings.h"
-#include "JSON.h"
+#include "TreeEntryList.h"
 
 
 /*!	\mainpage	Programme to evaluate CPG pulse shape data
@@ -331,6 +331,43 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 }
 
 
+void entrylist_printUsage(const char* progName) {
+	cerr << "Syntax: " << progName << " FILENAME ..." << endl;
+	cerr << "" << endl;
+	cerr << "Options:" << endl;
+	cerr << "-?          Show help" << endl;
+	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
+	cerr << "" << endl;
+	cerr << "Read event/entry list from files and output entry numbers." << endl;
+}
+
+int entrylist(int argc, char *argv[], char *envp[]) {
+	int opt = 0;
+	while ((opt = getopt(argc, argv, "?c:l:f:j")) != -1) {
+		switch (opt) {
+			case '?': { entrylist_printUsage(argv[0]); return 0; }
+			case 'l': { handleOptionLogging(optarg); break; }
+			default: throw invalid_argument("Unkown command line option");
+		}
+	}
+
+	if (argc - optind >= 1) {
+		TreeEntryList entries;
+		while (optind < argc) {
+			TString inFileName(argv[optind++]);
+			log_debug("Reading entries from (\"%s\")", inFileName.Data());
+			entries.clear();
+			entries.readAuto(inFileName);
+			entries.writeASCII(cout);
+		}
+		return 0;
+	} else {
+		entrylist_printUsage(argv[0]);
+		return 1;
+	}
+}
+
+
 void main_printUsage(const char* progName) {
 	cerr << "Syntax: " << progName << " COMMAND ..." << endl << endl;
 	cerr << "Commands: " << endl;
@@ -339,6 +376,7 @@ void main_printUsage(const char* progName) {
 	cerr << "  map-multi" << endl;
 	cerr << "  reduce" << endl;
 	cerr << "  tabulate" << endl;
+	cerr << "  entrylist" << endl;
 	cerr << "" << endl;
 	cerr << "Use" << endl;
 	cerr << "" << endl;
@@ -371,6 +409,7 @@ int main(int argc, char *argv[], char *envp[]) {
 		else if (cmd == "map-multi") return map_multi(cmd_argc, cmd_argv, envp);
 		else if (cmd == "reduce") return reduce(cmd_argc, cmd_argv, envp);
 		else if (cmd == "tabulate") return tabulate(cmd_argc, cmd_argv, envp);
+		else if (cmd == "entrylist") return entrylist(cmd_argc, cmd_argv, envp);
 		else throw invalid_argument("Command not supported.");
 	}
 	catch(std::exception &e) {
