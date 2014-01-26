@@ -27,6 +27,9 @@ using namespace std;
 namespace froast {
 
 
+TString Util::s_objSpecSep(".root/");
+
+
 void Util::copy(const TCollection *from, std::vector<TString> &to)
 	{ copy(from, to, TString::EStripType(-1)); }
 
@@ -71,6 +74,23 @@ void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &groups,
 	TObjArray* result = expr.MatchS(s);
 	copy(result, groups, strip);
 	delete result;
+}
+
+
+bool Util::isTFileObjName(const TString &fileObjName) {
+	return fileObjName.EndsWith(".root") || fileObjName.Contains(s_objSpecSep);
+}
+
+
+void Util::splitTFileObjName(const TString &fileObjName, TString &fileName, TString &objectName) {
+	if (isTFileObjName(fileObjName)) {
+		fileName = fileObjName;
+		int idx = fileName.Index(s_objSpecSep);
+		if (idx >= 0) {
+			fileName = fileName(0, idx + s_objSpecSep.Length() - 1);
+			objectName = fileObjName(idx + s_objSpecSep.Length(), fileObjName.Length() - idx - s_objSpecSep.Length());
+		}
+	} else throw invalid_argument("Expected a \".root\" file name");
 }
 
 

@@ -33,6 +33,9 @@ namespace froast {
 
 
 class Util {
+protected:
+	static TString s_objSpecSep;
+
 public:
 	inline static double floatNaN() { return std::numeric_limits<float>::quiet_NaN(); }
 	inline static double doubleNaN() { return std::numeric_limits<double>::quiet_NaN(); }
@@ -71,6 +74,16 @@ public:
 	/// @param groups   std::vector to copy matched groups into
 	/// @param strip    Strip leading and/or trailing blanks (see TString::EStripType)
 	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &groups, const TString::EStripType strip);
+
+	/// @brief Check if string is a ".root" file name with optional object name
+	/// @return  @c true if string is of the form "[.../]FILE_NAME.root[/OBJECT_NAME]", @c false otherwise
+	static bool isTFileObjName(const TString &fileObjName);
+
+	/// @brief Split a string of the form "[.../]FILE_NAME.root[/OBJECT_NAME]" into info a file name and an optional object name
+	/// @param fileObjName  String to be split
+	/// @param fileName     Receives file name part of input string (including path, if any)
+	/// @param objectName   Receives object name part of input string, may be empty if no object is specified
+	static void splitTFileObjName(const TString &fileObjName, TString &fileName, TString &objectName);
 };
 
 

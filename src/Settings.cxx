@@ -342,17 +342,11 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) const 
 
 
 void Settings::readAuto(const TString &fileName, EEnvLevel level) {
-	TString objSpecSep(".root/");
-	if (fileName.EndsWith(".root") || fileName.Contains(objSpecSep)) {
-		TString rootFileName = fileName;
-		TString settingsName = "";
-		int idx = fileName.Index(objSpecSep);
-		if (idx >= 0) {
-			rootFileName = fileName(0, idx + objSpecSep.Length() - 1);
-			settingsName = fileName(idx + objSpecSep.Length(), fileName.Length() - idx - objSpecSep.Length());
-		}
+	if (Util::isTFileObjName(fileName)) {
+		TString rootFileName, objectName;
+		Util::splitTFileObjName(fileName, rootFileName, objectName);
 		TFile inFile(rootFileName.Data(), "read");
-		if (settingsName.Length() > 0) read(&inFile, settingsName.Data());
+		if (objectName.Length() > 0) read(&inFile, objectName);
 		else read(&inFile);
 	} else if (fileName.EndsWith("rootrc")) {
 		read(fileName, level);
