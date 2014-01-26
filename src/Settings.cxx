@@ -121,7 +121,7 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 	copy(found.begin(), found.end(), instances.begin());
 }
 
-#include <iostream>
+
 bool Settings::operator()(const char* name, bool dflt, bool saveDflt) {
 	bool value = dflt;
 	bool saveValue = false;
@@ -389,7 +389,9 @@ Settings::Settings()
 	: m_env(new TEnv), m_envOwned(true) {}
 
 
-Settings::~Settings() {}
+Settings::~Settings() {
+	if (m_envOwned && (m_env !=0)) delete m_env;
+}
 
 
 } // namespace froast
