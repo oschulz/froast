@@ -36,40 +36,41 @@ class Util {
 public:
 	inline static double floatNaN() { return std::numeric_limits<float>::quiet_NaN(); }
 	inline static double doubleNaN() { return std::numeric_limits<double>::quiet_NaN(); }
-	
-	///	@brief	Copies entries of TCollection of TStrings to a std::vector of TString
-	///	@param	from	TCollection to be copied from
-	///	@param	to		std::string to be copied into
+
+	/// @brief Copies    entries of TCollection of TStrings to a std::vector of TString
+	/// @param from     TCollection to be copied from
+	/// @param to       std::string to be copied into
 	static void copy(const TCollection *from, std::vector<TString> &to);
-	///	@brief	Copies entries of TCollection of TStrings to a std::vector of TString
-	///	@param	from	TCollection to be copied from
-	///	@param	to		std::string to be copied into
-	///	@param	strip	Whether to strip leading/trailing blanks
+	/// @brief Copies entries of TCollection of TStrings to a std::vector of TString
+	/// @param from     TCollection to be copied from
+	/// @param to       std::string to be copied into
+	/// @param strip    Whether to strip leading/trailing blanks
 	static void copy(const TCollection *from, std::vector<TString> &to, TString::EStripType strip);
 
-	///	@brief	split TString into parts according to separation character and put them into std::vector of TString
-	///	@param	s		TString to be split
-	///	@param	sep	Character/expression separating the parts of s
-	///	@param	parts	std::vector to write splitted parts into
+	/// @brief split    string into parts according to separation character and put them into std::vector of TString
+	/// @param s        string to be split
+	/// @param sep      Character/expression separating the parts of s
+	/// @param parts    std::vector to write splitted parts into
 	static void split(const TString &s, const TString &sep, std::vector<TString> &parts);
-	///	@brief	split TString into parts according to separation character and put them into std::vector of TString
-	///	@param	s		TString to be split
-	///	@param	sep		Character/expression separating the parts of s
-	///	@param	parts	std::vector to write splitted parts into
-	///	@param	strip 	Whether to strip leading/trailing blanks
+	/// @brief split string into parts according to separation character and put them into std::vector of TString
+	/// @param s  string to be split
+	/// @param sep  Character/expression separating the parts of s
+	/// @param parts std::vector to write splitted parts into
+	/// @param strip  Whether to strip leading/trailing blanks
 	static void split(const TString &s, const TString &sep, std::vector<TString> &parts, TString::EStripType strip);
 
-	///	@brief	Returns std::vector matching regular expressions to TString
-	///	@param	s			TString to be scanned
-	///	@param	expr		Regular expressions
-	///	@param	matches	std::vector to copy matched expressions into
-	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &matches);
-	///	@brief	Returns std::vector matching regular expressions to TString
-	///	@param	s	TString to be scanned
-	///	@param	expr	Regular expressions
-	///	@param	matches	std::vector to copy matched expressions into
-	///	@param	strip 	Whether to strip leading/trailing blanks
-	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &matches, TString::EStripType strip);
+	/// @brief Returns std::vector matching regular expressions to TString
+	/// @brief Match a string with a regular expression
+	/// @param s        String to be matched
+	/// @param expr     Regular expression
+	/// @param groups   std::vector to copy matched groups into
+	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &groups);
+	/// @brief Match a string with a regular expression
+	/// @param s        String to be matched
+	/// @param expr     Regular expression
+	/// @param groups   std::vector to copy matched groups into
+	/// @param strip    Strip leading and/or trailing blanks (see TString::EStripType)
+	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &groups, const TString::EStripType strip);
 };
 
 

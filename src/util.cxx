@@ -62,15 +62,15 @@ void Util::split(const TString &s, const TString &sep, std::vector<TString> &par
 }
 
 
-void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &matches) {
+void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &groups) {
 	TObjArray* result = expr.MatchS(s);
-	copy(result, matches);
+	copy(result, groups);
 	delete result;
 }
 
-void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &matches, TString::EStripType strip) {
+void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &groups, TString::EStripType strip) {
 	TObjArray* result = expr.MatchS(s);
-	copy(result, matches, strip);
+	copy(result, groups, strip);
 	delete result;
 }
 
