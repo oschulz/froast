@@ -207,8 +207,6 @@ void map_multi_printUsage(const char* progName) {
 	cerr << "" << endl;
 	cerr << "Options:" << endl;
 	cerr << "-?          Show help" << endl;
-	cerr << "-f FORMAT   Set output format (formats: [rootrc], json)" << endl;
-	cerr << "-j          Set output format to JSON. DEPRECATED, use \"-f json\" instead." << endl;
 	cerr << "-c SETTINGS Load configuration/settings" << endl;
 	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
 	cerr << "" << endl;
