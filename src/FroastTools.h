@@ -32,7 +32,7 @@
 namespace froast {
 
 
-class Selector {
+class FroastTools {
 public:
 
 	///	@brief	Copy object from a ROOT directory

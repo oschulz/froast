@@ -37,11 +37,11 @@
 // File.h
 #pragma link C++ class froast::File-;
 
+// FroastTools.h
+#pragma link C++ class froast::FroastTools-;
+
 // JSON.h
 #pragma link C++ class froast::JSON-;
-
-// Selector.h
-#pragma link C++ class froast::Selector-;
 
 // Settings.h
 #pragma link C++ class froast::Param-;

@@ -11,8 +11,8 @@ libfroast_la_SOURCES = \
 	block_allocator.cxx vjson.cxx \
 	BranchManager.cxx \
 	File.cxx \
+	FroastTools.cxx \
 	JSON.cxx \
-	Selector.cxx \
 	Settings.cxx \
 	TH1Tools.cxx \
 	TreeEntryList.cxx \
@@ -24,8 +24,8 @@ libfroast_la_headers = \
 	block_allocator.h vjson.h \
 	BranchManager.h \
 	File.h \
+	FroastTools.h \
 	JSON.h \
-	Selector.h \
 	Settings.h \
 	TH1Tools.h \
 	TreeEntryList.h \

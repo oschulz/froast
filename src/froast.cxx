@@ -30,7 +30,7 @@
 
 #include "logging.h"
 #include "util.h"
-#include "Selector.h"
+#include "FroastTools.h"
 #include "Settings.h"
 #include "TreeEntryList.h"
 
@@ -195,8 +195,8 @@ int map_single(int argc, char *argv[], char *envp[]) {
 	string outFileName = argv[optind++];
 	string inFileName = argv[optind++];
 
-	log_debug("Selector::mapSingle(\"%s\", \"%s\", \"%s\")", inFileName.c_str(), mappers.c_str(), outFileName.c_str());
-	Selector::mapSingle(inFileName, mappers, outFileName);
+	log_debug("FroastTools::mapSingle(\"%s\", \"%s\", \"%s\")", inFileName.c_str(), mappers.c_str(), outFileName.c_str());
+	FroastTools::mapSingle(inFileName, mappers, outFileName);
 
 	return 0;
 }
@@ -237,8 +237,8 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 		// By default the selector is compiled (++ ROOT compile option).
 		// If there are more than one inputfile, the selector is not recompiled
 		string input = argv[optind++];
-		log_debug("Selector::mapMulti(\"%s\", \"%s\", \"%s\", %s)", input.c_str(), mappers.c_str(), tag.c_str(), !firstInput ? "true" : "false");
-		Selector::mapMulti(input, mappers, tag, !firstInput);
+		log_debug("FroastTools::mapMulti(\"%s\", \"%s\", \"%s\", %s)", input.c_str(), mappers.c_str(), tag.c_str(), !firstInput ? "true" : "false");
+		FroastTools::mapMulti(input, mappers, tag, !firstInput);
 		firstInput = false;
 	}
 
@@ -278,8 +278,8 @@ int reduce(int argc, char *argv[], char *envp[]) {
 		inFiles+=" ";
 		inFiles+=argv[optind++];
 	}
-	log_debug("Selector::reduce(\"%s\", \"%s\", \"%s\")", inFiles.c_str(), mappers.c_str(), outFileName.c_str());
-	Selector::reduce(inFiles, mappers, outFileName);
+	log_debug("FroastTools::reduce(\"%s\", \"%s\", \"%s\")", inFiles.c_str(), mappers.c_str(), outFileName.c_str());
+	FroastTools::reduce(inFiles, mappers, outFileName);
 	return 0;
 }
 
@@ -322,8 +322,8 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 
 	TChain *chain = openTChain(input);
 
-	log_debug("Selector::tabulate(\"%s\", cout, \"%s\", \"%s\", %li, %li)", chain->GetName(), varexp.Data(), selection.Data(), (long int)nEntries, (long int)startEntry);
-	Selector::tabulate(chain, cout, varexp, selection, nEntries, startEntry);
+	log_debug("FroastTools::tabulate(\"%s\", cout, \"%s\", \"%s\", %li, %li)", chain->GetName(), varexp.Data(), selection.Data(), (long int)nEntries, (long int)startEntry);
+	FroastTools::tabulate(chain, cout, varexp, selection, nEntries, startEntry);
 
 	delete chain;
 	

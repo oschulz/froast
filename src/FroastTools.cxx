@@ -15,7 +15,7 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 
-#include "Selector.h"
+#include "FroastTools.h"
 
 #include <iostream>
 #include <iomanip>
@@ -62,7 +62,7 @@ public:
 namespace froast {
 
 
-void Selector::copyObject(TDirectory *tdir, const TString &objName) {
+void FroastTools::copyObject(TDirectory *tdir, const TString &objName) {
 	TObject *keepObj = 0;
 	tdir->GetObject(objName.Data(), keepObj);
 	if (keepObj != 0) {
@@ -77,7 +77,7 @@ void Selector::copyObject(TDirectory *tdir, const TString &objName) {
 }
 
 
-void Selector::mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
+void FroastTools::mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
 	
 	///	For the syntax of the selector expression see masSingle
 
@@ -119,7 +119,7 @@ void Selector::mapMulti(TChain *chain, const TString &selector, const TString &t
 }
 
 
-void Selector::mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile) {
+void FroastTools::mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile) {
 	TFile inFile(inFileName.Data(), "read");
 	TFile outFile(outFileName.Data(), "recreate");
 	outFile.SetCompressionLevel(GSettings().get("froast.tfile.compression.level", 1));
@@ -284,11 +284,11 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 }
 
 
-void Selector::mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile) {
+void FroastTools::mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile) {
 
-	cerr << TString::Format("Selector::map(%s, %s, %s)", fileName.Data(), mappers.Data(), tag.Data()) << endl;
+	cerr << TString::Format("FroastTools::map(%s, %s, %s)", fileName.Data(), mappers.Data(), tag.Data()) << endl;
 	
-	///	For description of mappers see Selector::mapSingle
+	///	For description of mappers see FroastTools::mapSingle
 
 	TChain chain("");
 	chain.Add(fileName.Data());
@@ -310,12 +310,12 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 			Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
 	}
 	delete tenv_copy;
-	cerr << "Selector::map(...) finished" << endl;
+	cerr << "FroastTools::map(...) finished" << endl;
 }
 
 
-void Selector::reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile) {
-	cerr << TString::Format("Selector::reduce(%s, %s, %s)", inFileNames.Data(), mappers.Data(), outFileName.Data()) << endl;
+void FroastTools::reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile) {
+	cerr << TString::Format("FroastTools::reduce(%s, %s, %s)", inFileNames.Data(), mappers.Data(), outFileName.Data()) << endl;
 	vector<TString> inFileList;
 	Util::split(inFileNames, " ", inFileList);
 	TFile outFile(outFileName, "recreate");
@@ -484,14 +484,14 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 	Settings::global().writeToGDirectory();
 	outFile.Write(0,TObject::kOverwrite);
 	outFile.Close();
-	cerr << "Selector::reduce(...) finished" << endl;
+	cerr << "FroastTools::reduce(...) finished" << endl;
 }
 
 
 // Based in part on TTreePlayer::scan (Copyright (C) 1995-2000, Rene Brun
 // and Fons Rademakers)
-void Selector::tabulate(TTree *chain, std::ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
-	cerr << TString::Format("Selector::tabulate(TChain*, ostream, \"%s\", \"%s\")", varexp.Data(), selection.Data()) << endl;
+void FroastTools::tabulate(TTree *chain, std::ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	cerr << TString::Format("FroastTools::tabulate(TChain*, ostream, \"%s\", \"%s\")", varexp.Data(), selection.Data()) << endl;
 
 	ssize_t logEvery = GSettings::get("selector.log.every", 10000);
 
