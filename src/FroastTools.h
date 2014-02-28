@@ -19,12 +19,14 @@
 #define FROAST_SELECTOR_H
 
 #include <iostream>
+#include <list>
 
 #include <Rtypes.h>
 #include <TString.h>
 #include <TFile.h>
 #include <TChain.h>
 #include <TSelector.h>
+#include <TEventList.h>
 
 #include "File.h"
 
@@ -87,10 +89,42 @@ public:
 	///	@brief	TTree Scan() Method like possibility to show information from TTrees
 	///	@param	chain		TTree to be scanned / evaluated
 	///	@param	varexp	Expression that shall be evaluated (formula. variable to print out etc.)
-	///	@param	selection	Cut criteria to be applied
+	///	@param	selection	Entry selection expression (as in TTree::Draw and similar)
 	///	@param	nEntries	Number of entries to be evaluated, choose -1 to evaluate all entries
 	///	@param	startEntry	First entry to be evaluated
 	static void tabulate(TTree *chain, std::ostream &out, const TString &varexp, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
+
+	///	@brief  Generate a TTree EventList
+	/// @param  tree        Data source
+	/// @param  name        Name for output EventList
+	///	@param	selection	Entry selection expression (as in TTree::Draw and similar)
+	///	@param	nEntries	Number of entries to be processed, choose -1 to evaluate all entries
+	///	@param	startEntry	First entry to be procecces
+	static TEventList* genEventList(TTree *tree, const TString &name, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
+
+	///	@brief  Copy a TTree, optionally applying entry selection criteria
+	/// @param  input       Input TTree
+	/// @param  outTreeName Output TTree name
+	/// @param  eventList   Entry selection list
+	///	@param	selection	Entry selection expression (as in TTree::Draw and similar)
+	///	@param	nEntries	Number of entries to be processed, choose -1 to evaluate all entries
+	///	@param	startEntry	First entry to be procecces
+	///
+	/// Output TTree will be written into current TDirectory. Only entries selected by both
+	/// list and selection expression will be copied.
+
+	static TTree* filter(TTree *inputTree, const TString &outTreeName, TEventList *eventList = 0, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
+
+	///	@brief  Several TTree in TFiles, optionally applying entry selection criteria
+	/// @param  inputs      Input File/Tree specifications ("FILE.root/TREE")
+	///	@param	tag         Suffix to use for output file names
+	/// @param  eventList   Entry selection list
+	///	@param	nEntries	Number of entries to be processed, choose -1 to evaluate all entries
+	///	@param	startEntry	First entry to be procecces
+	///
+	/// Output TTree will be written into current TDirectory.
+
+	static void filter(const std::list<TString> &inputs, const TString &tag, TEventList *eventList = 0, ssize_t nEntries = -1, ssize_t startEntry = 0);
 };
 
 

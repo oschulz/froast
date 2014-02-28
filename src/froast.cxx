@@ -18,6 +18,8 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <list>
+#include <memory>
 #include <cstdlib>
 #include <cstring>
 
@@ -329,6 +331,80 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 }
 
 
+void filter_multi_printUsage(const char* progName) {
+	cerr << "Syntax: " << progName << " [OPTIONS] TAG [INPUT]..." << endl;
+	cerr << "" << endl;
+	cerr << "Options:" << endl;
+	cerr << "-?          Show help" << endl;
+	cerr << "-e EXPR     Filter expression (as in TTree::Draw and similar)" << endl;
+	cerr << "-f IDX      Copy from entry IDX (default: 0)" << endl;
+	cerr << "-n N        Copy until entry IDX + N (default: -1 = no limit)" << endl;
+	cerr << "-c SETTINGS Load configuration/settings" << endl;
+	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
+	cerr << "" << endl;
+	cerr << "Copy TFiles with TTrees, optionally applying entry selection criteria." << endl;
+	cerr << "If a filter expression is given, it is evaluated on the first input" << endl;
+	cerr << "and the resulting entry selection then applied to all inputs." << endl;
+}
+
+int filter_multi(int argc, char *argv[], char *envp[]) {
+	string selection;
+	ssize_t nEntries = -1;
+	ssize_t startEntry = 0;
+
+	int opt = 0;
+	while ((opt = getopt(argc, argv, "?e:f:n:c:l:")) != -1) {
+		switch (opt) {
+			case '?': { filter_multi_printUsage(argv[0]); return 0; }
+			case 'e': {
+				log_debug("Setting filter expression to %s", optarg);
+				selection = string(optarg);
+				break;
+			}
+			case 'f': {
+				startEntry = atol(optarg);
+				log_debug("Starting at entry %lli", (long long) startEntry);
+				break;
+			}
+			case 'n': {
+				nEntries = atol(optarg);
+				log_debug("Processing %lli entries", (long long) nEntries);
+				break;
+			}
+			case 'c': { handleOptionConfig(optarg); break; }
+			case 'l': { handleOptionLogging(optarg); break; }
+			default: throw invalid_argument("Unkown command line option");
+		}
+	}
+
+	if (optind >= argc) { filter_multi_printUsage(argv[0]); return 1;	}
+	string tag = argv[optind++];
+
+	list<TString> inputs;
+	while (optind < argc) inputs.push_back(TString(argv[optind++]));
+
+	auto_ptr<TEventList> eventList;
+
+	if (! selection.empty()) {
+		if (inputs.empty()) throw invalid_argument("No input to evaluate filter expression on");
+	 	TString firstFileName, firstTreeName;
+	 	Util::splitTFileObjName(*inputs.begin(), firstFileName, firstTreeName);
+		TFile *firstFile(new TFile(firstFileName, "read"));
+		TTree *firstTree = dynamic_cast<TTree*>(firstFile->Get(firstTreeName));
+		if (firstTree == 0) throw runtime_error("Can't open input TTree");
+		log_debug("Generating event list");
+		eventList = auto_ptr<TEventList>(FroastTools::genEventList(firstTree, "eventList", selection, nEntries, startEntry));
+		log_debug("%lli events selected", (long long)eventList->GetN());
+		delete firstFile;		
+	}
+
+	if (&*eventList != 0) FroastTools::filter(inputs, tag, &*eventList);
+	else FroastTools::filter(inputs, tag, 0, nEntries, startEntry);
+
+	return 0;
+}
+
+
 void entrylist_printUsage(const char* progName) {
 	cerr << "Syntax: " << progName << " FILENAME ..." << endl;
 	cerr << "" << endl;
@@ -373,6 +449,7 @@ void main_printUsage(const char* progName) {
 	cerr << "  map-single" << endl;
 	cerr << "  map-multi" << endl;
 	cerr << "  reduce" << endl;
+	cerr << "  filter-multi" << endl;
 	cerr << "  tabulate" << endl;
 	cerr << "  entrylist" << endl;
 	cerr << "" << endl;
@@ -406,6 +483,7 @@ int main(int argc, char *argv[], char *envp[]) {
 		else if (cmd == "map-single") return map_single(cmd_argc, cmd_argv, envp);
 		else if (cmd == "map-multi") return map_multi(cmd_argc, cmd_argv, envp);
 		else if (cmd == "reduce") return reduce(cmd_argc, cmd_argv, envp);
+		else if (cmd == "filter-multi") return filter_multi(cmd_argc, cmd_argv, envp);
 		else if (cmd == "tabulate") return tabulate(cmd_argc, cmd_argv, envp);
 		else if (cmd == "entrylist") return entrylist(cmd_argc, cmd_argv, envp);
 		else throw invalid_argument("Command not supported.");

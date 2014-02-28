@@ -21,6 +21,9 @@
 #include <iomanip>
 #include <sstream>
 #include <limits>
+#include <map>
+#include <list>
+#include <memory>
 #include <cstdlib>
 #include <cassert>
 
@@ -32,9 +35,11 @@
 #include <TTreeFormulaManager.h>
 #include <TEntryList.h>
 
+#include "logging.h"
 #include "util.h"
 #include "File.h"
 #include "Settings.h"
+#include "TreeEntryList.h"
 
 
 using namespace std;
@@ -673,5 +678,64 @@ void FroastTools::tabulate(TTree *chain, std::ostream &out, const TString &varex
 	tformulas.Clear();
 }
 
+
+TEventList* FroastTools::genEventList(TTree *tree, const TString &name, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	if (nEntries < 0) nEntries = numeric_limits<ssize_t>::max();
+	tree->Draw(TString(">> ") + name, selection, "", nEntries, startEntry);
+	TEventList* treeEventList = dynamic_cast<TEventList*>(gDirectory->FindObject(name));
+	assert(treeEventList != 0);
+
+	// TEventList returned by draw seems to stay connected to tree, resulting in segfault when
+	// list is used after tree is deleted. So return a copy instead.
+	TEventList* eventList = new TEventList(*treeEventList);
+	delete treeEventList;
+	eventList->SetName(name);
+	return eventList;
+}
+
+
+TTree* FroastTools::filter(TTree *inputTree, const TString &outTreeName, TEventList *eventList, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	TEventList *oldList = inputTree->GetEventList();
+	inputTree->SetEventList(eventList);
+	if (nEntries < 0) nEntries = numeric_limits<ssize_t>::max();
+	TTree* outputTree = inputTree->CopyTree(selection, "", nEntries, startEntry);
+	inputTree->SetEventList(oldList);
+	return outputTree;
+}
+
+
+void FroastTools::filter(const std::list<TString> &inputs, const TString &tag, TEventList *eventList, ssize_t nEntries, ssize_t startEntry) {
+	typedef std::map<TString, std::list<TString> > FilesTrees;
+	FilesTrees inFilesTrees;
+	for (list<TString>::const_iterator it = inputs.begin(); it != inputs.end(); ++it) {
+		TString fileName, treeName;
+		Util::splitTFileObjName(*it, fileName, treeName);
+		inFilesTrees[fileName].push_back(treeName);
+	}
+	for (FilesTrees::const_iterator ft = inFilesTrees.begin(); ft != inFilesTrees.end(); ++ft) {
+		const TString &inFileName = ft->first;
+		const list<TString> &treeNames = ft->second;
+
+		TString outFileName = (File(inFileName.Data()).base() % tag.Data()).path();
+
+		log_info("Copying input file \"%s\" to output file \"%s\"", inFileName.Data(), outFileName.Data());
+
+		auto_ptr<TFile> inputFile(new TFile(inFileName, "read"));
+		auto_ptr<TFile> outputFile(new TFile(outFileName, "recreate"));
+
+		if (eventList != 0) TreeEntryList(eventList).writeToGDirectory();
+
+		for (list<TString>::const_iterator tn = treeNames.begin(); tn != treeNames.end(); ++tn) {
+			const TString &treeName = *tn;
+			log_info("Copying tree \"%s\" in input file \"%s\"", treeName.Data(), inFileName.Data());
+			TTree *inputTree = dynamic_cast<TTree*>(inputFile->Get(treeName));
+			if (inputTree == 0) throw runtime_error("Can't open input TTree");
+			filter(inputTree, treeName, eventList, "", nEntries, startEntry);
+		}
+
+		outputFile->Write();
+		outputFile->Close();
+	}
+}
 
 } // namespace froast
