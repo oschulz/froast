@@ -694,7 +694,7 @@ TEventList* FroastTools::genEventList(TTree *tree, const TString &name, const TS
 }
 
 
-TTree* FroastTools::filter(TTree *inputTree, const TString &outTreeName, TEventList *eventList, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+TTree* FroastTools::filter(TTree *inputTree, const TString &outTreeName, const TString &selection, TEventList *eventList, ssize_t nEntries, ssize_t startEntry) {
 	TEventList *oldList = inputTree->GetEventList();
 	inputTree->SetEventList(eventList);
 	if (nEntries < 0) nEntries = numeric_limits<ssize_t>::max();
@@ -704,7 +704,35 @@ TTree* FroastTools::filter(TTree *inputTree, const TString &outTreeName, TEventL
 }
 
 
-void FroastTools::filter(const std::list<TString> &inputs, const TString &tag, TEventList *eventList, ssize_t nEntries, ssize_t startEntry) {
+void FroastTools::filter(const std::list<TString> &inputs, const TString &tag, const TString &selection, TEventList *eventList, ssize_t nEntries, ssize_t startEntry) {
+	auto_ptr<TEventList> localEventList;
+	TString localSelection = selection;
+
+	if ((localSelection.Length() == 0) && ((startEntry > 0) || (nEntries > 0))) {
+		log_debug("No selection expression, but entry list and entry range specified, forcing selection expression to \"1\"");
+		localSelection = "1";
+	}
+
+	if (localSelection.Length() > 0) {
+		if (inputs.empty()) throw invalid_argument("No input to evaluate filter expression on");
+		TString firstFileName, firstTreeName;
+		Util::splitTFileObjName(*inputs.begin(), firstFileName, firstTreeName);
+		TFile *firstFile(new TFile(firstFileName, "read"));
+		TTree *firstTree = dynamic_cast<TTree*>(firstFile->Get(firstTreeName));
+		if (firstTree == 0) throw runtime_error("Can't open input TTree");
+		log_debug("Generating event list");
+		localEventList = auto_ptr<TEventList>(FroastTools::genEventList(firstTree, "localEventList", localSelection, nEntries, startEntry));
+		if (eventList != 0) {
+			log_debug("%lli events selected", (long long)localEventList->GetN());
+			log_debug("Intersecting with specified event list");
+			localEventList->Intersect(eventList);
+			log_debug("%lli events remain", (long long)localEventList->GetN());
+		}
+		delete firstFile;
+	}
+	TEventList *finalEventList = (&*localEventList != 0) ? &*localEventList : eventList;
+	if (finalEventList != 0) log_info("%lli events selected", (long long)finalEventList->GetN());
+
 	typedef std::map<TString, std::list<TString> > FilesTrees;
 	FilesTrees inFilesTrees;
 	for (list<TString>::const_iterator it = inputs.begin(); it != inputs.end(); ++it) {
@@ -723,14 +751,17 @@ void FroastTools::filter(const std::list<TString> &inputs, const TString &tag, T
 		auto_ptr<TFile> inputFile(new TFile(inFileName, "read"));
 		auto_ptr<TFile> outputFile(new TFile(outFileName, "recreate"));
 
-		if (eventList != 0) TreeEntryList(eventList).writeToGDirectory();
+		if (finalEventList != 0) TreeEntryList(finalEventList).writeToGDirectory();
 
 		for (list<TString>::const_iterator tn = treeNames.begin(); tn != treeNames.end(); ++tn) {
 			const TString &treeName = *tn;
 			log_info("Copying tree \"%s\" in input file \"%s\"", treeName.Data(), inFileName.Data());
 			TTree *inputTree = dynamic_cast<TTree*>(inputFile->Get(treeName));
 			if (inputTree == 0) throw runtime_error("Can't open input TTree");
-			filter(inputTree, treeName, eventList, "", nEntries, startEntry);
+
+			// Using event lists and entry ranges at the same time has weird effects
+			if (finalEventList != 0) filter(inputTree, treeName, "", finalEventList);
+			else filter(inputTree, treeName, "", 0, nEntries, startEntry);
 		}
 
 		outputFile->Write();

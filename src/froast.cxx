@@ -19,7 +19,6 @@
 #include <iostream>
 #include <fstream>
 #include <list>
-#include <memory>
 #include <cstdlib>
 #include <cstring>
 
@@ -336,29 +335,36 @@ void filter_multi_printUsage(const char* progName) {
 	cerr << "" << endl;
 	cerr << "Options:" << endl;
 	cerr << "-?          Show help" << endl;
-	cerr << "-e EXPR     Filter expression (as in TTree::Draw and similar)" << endl;
+	cerr << "-s EXPR     Select expression (as in TTree::Draw and similar)" << endl;
+	cerr << "-e ENTRIES  Entry-list (see entrylist command)" << endl;
 	cerr << "-f IDX      Copy from entry IDX (default: 0)" << endl;
 	cerr << "-n N        Copy until entry IDX + N (default: -1 = no limit)" << endl;
 	cerr << "-c SETTINGS Load configuration/settings" << endl;
 	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
 	cerr << "" << endl;
-	cerr << "Copy TFiles with TTrees, optionally applying entry selection criteria." << endl;
-	cerr << "If a filter expression is given, it is evaluated on the first input" << endl;
-	cerr << "and the resulting entry selection then applied to all inputs." << endl;
+	cerr << "Copy TFiles with TTrees, optionally applying entry selection criteria. If a" << endl;
+	cerr << "filter expression is given, it is evaluated on the first input and the" << endl;
+	cerr << "resulting entry selection applied to all inputs." << endl;
 }
 
 int filter_multi(int argc, char *argv[], char *envp[]) {
 	string selection;
+	string entryListName;
 	ssize_t nEntries = -1;
 	ssize_t startEntry = 0;
 
 	int opt = 0;
-	while ((opt = getopt(argc, argv, "?e:f:n:c:l:")) != -1) {
+	while ((opt = getopt(argc, argv, "?s:e:f:n:c:l:")) != -1) {
 		switch (opt) {
 			case '?': { filter_multi_printUsage(argv[0]); return 0; }
-			case 'e': {
-				log_debug("Setting filter expression to %s", optarg);
+			case 's': {
 				selection = string(optarg);
+				log_debug("Using select expression \"%s\"", selection.c_str());
+				break;
+			}
+			case 'e': {
+				entryListName = string(optarg);
+				log_debug("Using entry list  \"%s\"", entryListName.c_str());
 				break;
 			}
 			case 'f': {
@@ -383,23 +389,15 @@ int filter_multi(int argc, char *argv[], char *envp[]) {
 	list<TString> inputs;
 	while (optind < argc) inputs.push_back(TString(argv[optind++]));
 
-	auto_ptr<TEventList> eventList;
-
-	if (! selection.empty()) {
-		if (inputs.empty()) throw invalid_argument("No input to evaluate filter expression on");
-	 	TString firstFileName, firstTreeName;
-	 	Util::splitTFileObjName(*inputs.begin(), firstFileName, firstTreeName);
-		TFile *firstFile(new TFile(firstFileName, "read"));
-		TTree *firstTree = dynamic_cast<TTree*>(firstFile->Get(firstTreeName));
-		if (firstTree == 0) throw runtime_error("Can't open input TTree");
-		log_debug("Generating event list");
-		eventList = auto_ptr<TEventList>(FroastTools::genEventList(firstTree, "eventList", selection, nEntries, startEntry));
-		log_debug("%lli events selected", (long long)eventList->GetN());
-		delete firstFile;		
+	TEventList *eventList = 0;
+	TreeEntryList entries;
+	if (! entryListName.empty()) {
+		log_debug("Reading entry list from \"%s\"", entryListName.c_str());
+		entries.readAuto(entryListName);
+		eventList = entries.tevtList();
 	}
 
-	if (&*eventList != 0) FroastTools::filter(inputs, tag, &*eventList);
-	else FroastTools::filter(inputs, tag, 0, nEntries, startEntry);
+	FroastTools::filter(inputs, tag, selection, eventList, nEntries, startEntry);
 
 	return 0;
 }
@@ -428,8 +426,8 @@ int entrylist(int argc, char *argv[], char *envp[]) {
 	if (argc - optind >= 1) {
 		TreeEntryList entries;
 		while (optind < argc) {
-			TString inFileName(argv[optind++]);
-			log_debug("Reading entries from (\"%s\")", inFileName.Data());
+			string inFileName(argv[optind++]);
+			log_debug("Reading entries from \"%s\"", inFileName.c_str());
 			entries.clear();
 			entries.readAuto(inFileName);
 			entries.writeASCII(cout);

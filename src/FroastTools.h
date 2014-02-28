@@ -113,7 +113,7 @@ public:
 	/// Output TTree will be written into current TDirectory. Only entries selected by both
 	/// list and selection expression will be copied.
 
-	static TTree* filter(TTree *inputTree, const TString &outTreeName, TEventList *eventList = 0, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
+	static TTree* filter(TTree *inputTree, const TString &outTreeName, const TString &selection = "", TEventList *eventList = 0, ssize_t nEntries = -1, ssize_t startEntry = 0);
 
 	///	@brief  Several TTree in TFiles, optionally applying entry selection criteria
 	/// @param  inputs      Input File/Tree specifications ("FILE.root/TREE")
@@ -124,7 +124,7 @@ public:
 	///
 	/// Output TTree will be written into current TDirectory.
 
-	static void filter(const std::list<TString> &inputs, const TString &tag, TEventList *eventList = 0, ssize_t nEntries = -1, ssize_t startEntry = 0);
+	static void filter(const std::list<TString> &inputs, const TString &tag, const TString &selection = "", TEventList *eventList = 0, ssize_t nEntries = -1, ssize_t startEntry = 0);
 };
 
 
