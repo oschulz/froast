@@ -48,12 +48,27 @@ using namespace std;
 namespace froast {
 
 
-Param Param::operator()(int32_t idx) const {
+Param Param::operator()(const TString &name) const {
 	TPRegexp wildcardExpr("[*]");
+	Param result(m_name);
+	wildcardExpr.Substitute(result.m_name, name, "", 0, 1);
+	return result;
+}
+
+Param Param::operator()(int32_t idx) const {
 	if (idx < 0) throw invalid_argument("Negative value passed as Param index");
 	Param result(m_name);
-	wildcardExpr.Substitute(result.m_name, TString::Format("%li", (long)idx), "", 0, 1);
-	return result;
+	return (*this)(TString::Format("%li", (long)idx));
+}
+
+
+Param Param::operator%(const TString &name) const {
+	return Param(m_name.Length() > 0 ? m_name + "." + name : name);
+}
+
+Param Param::operator%(int32_t idx) const {
+	if (idx < 0) throw invalid_argument("Negative value passed as Param index");
+	return (*this) % TString::Format("%li", (long)idx);
 }
 
 	
