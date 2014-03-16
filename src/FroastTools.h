@@ -28,6 +28,7 @@
 #include <TSelector.h>
 #include <TEventList.h>
 
+#include "logging.h"
 #include "File.h"
 
 
@@ -36,6 +37,13 @@ namespace froast {
 
 class FroastTools {
 public:
+	///	@brief	Get logging level
+	///	@return	logging level
+	static inline LogLevel logLevel() { return log_level(); }
+
+	///	@brief	Set logging level
+	///	@return	level   Logging level
+	static void logLevel(LogLevel level) { log_level(level); }
 
 	///	@brief	Copy object from a ROOT directory
 	///	@param	tdir	Directory where to copy from

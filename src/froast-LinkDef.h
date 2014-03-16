@@ -6,6 +6,9 @@
 // util.h
 #pragma link C++ class froast::Util-;
 
+// logging.h
+#pragma link C++ enum froast::LogLevel;
+
 // BranchManager.h
 
 #pragma link C++ class froast::ManagedBranch-;
