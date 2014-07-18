@@ -90,7 +90,7 @@ public:
 	///	@param	selection	Cut criteria to be applied
 	///	@param	nEntries	Number of entries to be evaluated, choose -1 to evaluate all entries
 	///	@param	startEntry	First entry to be evaluated
-	static void tabulate(TTree *chain, ostream &out, const TString &varexp, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
+	static void tabulate(TTree *chain, std::ostream &out, const TString &varexp, const TString &selection = "", ssize_t nEntries = -1, ssize_t startEntry = 0);
 };
 
 
