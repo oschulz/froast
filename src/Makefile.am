@@ -1,4 +1,4 @@
-CLEANFILES = *.d *.so *-rdict.cxx *-rdict.h
+CLEANFILES = *.d *.so *_rdict.cxx *_rdict.h *rdict.pcm
 MAINTAINERCLEANFILES = Makefile.in
 
 # EXTRA_DIST = some extra files, e.g. test-data
@@ -45,18 +45,6 @@ rootmap_DATA =
 
 libfroast_la_SOURCES += libfroast_rdict.cxx
 rootmap_DATA += .libs/libfroast.rootmap
-
-
-
-# libfroast-rdict.cxx: $(libfroast_la_headers) froast-LinkDef.h
-# 	$(ROOTCINT) -f $@ -c -p $(CPPFLAGS) $(CXXFLAGS) $+
-# 
-# rootmapdir = $(libdir)
-# rootmap_DATA = .libs/libfroast.rootmap
-# 
-# .libs/libfroast.rootmap: libfroast.la | $(libfroast_la_headers) froast-LinkDef.h
-# 	$(RLIBMAP) -o $@ -l .libs/libfroast@SHLIBEXT@ -c $|
-
 
 if WITH_CLING
 
