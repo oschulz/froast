@@ -48,12 +48,27 @@ using namespace std;
 namespace froast {
 
 
-Param Param::operator()(int32_t idx) const {
+Param Param::operator()(const TString &name) const {
 	TPRegexp wildcardExpr("[*]");
+	Param result(m_name);
+	wildcardExpr.Substitute(result.m_name, name, "", 0, 1);
+	return result;
+}
+
+Param Param::operator()(int32_t idx) const {
 	if (idx < 0) throw invalid_argument("Negative value passed as Param index");
 	Param result(m_name);
-	wildcardExpr.Substitute(result.m_name, TString::Format("%li", (long)idx), "", 0, 1);
-	return result;
+	return (*this)(TString::Format("%li", (long)idx));
+}
+
+
+Param Param::operator%(const TString &name) const {
+	return Param(m_name.Length() > 0 ? m_name + "." + name : name);
+}
+
+Param Param::operator%(int32_t idx) const {
+	if (idx < 0) throw invalid_argument("Negative value passed as Param index");
+	return (*this) % TString::Format("%li", (long)idx);
 }
 
 	
@@ -121,7 +136,7 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 	copy(found.begin(), found.end(), instances.begin());
 }
 
-#include <iostream>
+
 bool Settings::operator()(const char* name, bool dflt, bool saveDflt) {
 	bool value = dflt;
 	bool saveValue = false;
@@ -342,17 +357,11 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) const 
 
 
 void Settings::readAuto(const TString &fileName, EEnvLevel level) {
-	TString objSpecSep(".root/");
-	if (fileName.EndsWith(".root") || fileName.Contains(objSpecSep)) {
-		TString rootFileName = fileName;
-		TString settingsName = "";
-		int idx = fileName.Index(objSpecSep);
-		if (idx >= 0) {
-			rootFileName = fileName(0, idx + objSpecSep.Length() - 1);
-			settingsName = fileName(idx + objSpecSep.Length(), fileName.Length() - idx - objSpecSep.Length());
-		}
+	if (Util::isTFileObjName(fileName)) {
+		TString rootFileName, objectName;
+		Util::splitTFileObjName(fileName, rootFileName, objectName);
 		TFile inFile(rootFileName.Data(), "read");
-		if (settingsName.Length() > 0) read(&inFile, settingsName.Data());
+		if (objectName.Length() > 0) read(&inFile, objectName);
 		else read(&inFile);
 	} else if (fileName.EndsWith("rootrc")) {
 		read(fileName, level);
@@ -389,7 +398,9 @@ Settings::Settings()
 	: m_env(new TEnv), m_envOwned(true) {}
 
 
-Settings::~Settings() {}
+Settings::~Settings() {
+	if (m_envOwned && (m_env !=0)) delete m_env;
+}
 
 
 } // namespace froast

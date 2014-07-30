@@ -6,6 +6,9 @@
 // util.h
 #pragma link C++ class froast::Util-;
 
+// logging.h
+#pragma link C++ enum froast::LogLevel;
+
 // BranchManager.h
 
 #pragma link C++ class froast::ManagedBranch-;
@@ -37,11 +40,11 @@
 // File.h
 #pragma link C++ class froast::File-;
 
+// FroastTools.h
+#pragma link C++ class froast::FroastTools-;
+
 // JSON.h
 #pragma link C++ class froast::JSON-;
-
-// Selector.h
-#pragma link C++ class froast::Selector-;
 
 // Settings.h
 #pragma link C++ class froast::Param-;
@@ -50,6 +53,9 @@
 
 // TH1Tools.h
 #pragma link C++ class froast::TH1Tools-;
+
+// TreeMapperSel.h
+#pragma link C++ class froast::TreeEntryList-;
 
 // TreeMapperSel.h
 #pragma link C++ class froast::TreeMapperSel+;
