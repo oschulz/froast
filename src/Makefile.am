@@ -67,7 +67,7 @@ libfroast_rdict.cxx: $(libfroast_la_headers) froast_LinkDef.h
 else # not WITH_CLING
 
 libfroast_rdict.cxx: $(libfroast_la_headers) froast_LinkDef.h
-	$(ROOTCINT) -f $@ -c -p $(CPPFLAGS) $(CXXFLAGS) $+
+	$(ROOTCINT) -f $@ -c -p $(CPPFLAGS) `echo $(CXXFLAGS) | sed 's/\(^\|\s\)\(-std=[A-Za-z0-9+]\+\)\($$\|\s\)/\1\3/g'` $+
 
 .libs/libfroast.rootmap: libfroast.la | $(libfroast_la_headers) froast_LinkDef.h
 	$(RLIBMAP) -o $@ -l .libs/libfroast@SHLIBEXT@ -c $|
