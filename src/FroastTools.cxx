@@ -15,12 +15,15 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 
-#include "Selector.h"
+#include "FroastTools.h"
 
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <limits>
+#include <map>
+#include <list>
+#include <memory>
 #include <cstdlib>
 #include <cassert>
 
@@ -32,9 +35,11 @@
 #include <TTreeFormulaManager.h>
 #include <TEntryList.h>
 
+#include "logging.h"
 #include "util.h"
 #include "File.h"
 #include "Settings.h"
+#include "TreeEntryList.h"
 
 
 using namespace std;
@@ -62,7 +67,7 @@ public:
 namespace froast {
 
 
-void Selector::copyObject(TDirectory *tdir, const TString &objName) {
+void FroastTools::copyObject(TDirectory *tdir, const TString &objName) {
 	TObject *keepObj = 0;
 	tdir->GetObject(objName.Data(), keepObj);
 	if (keepObj != 0) {
@@ -77,7 +82,7 @@ void Selector::copyObject(TDirectory *tdir, const TString &objName) {
 }
 
 
-void Selector::mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
+void FroastTools::mapMulti(TChain *chain, const TString &selector, const TString &tag, const TString &keep) {
 	
 	///	For the syntax of the selector expression see masSingle
 
@@ -119,7 +124,7 @@ void Selector::mapMulti(TChain *chain, const TString &selector, const TString &t
 }
 
 
-void Selector::mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile) {
+void FroastTools::mapSingle(const TString &inFileName, const TString &mappers, const TString &outFileName, bool noRecompile) {
 	TFile inFile(inFileName.Data(), "read");
 	TFile outFile(outFileName.Data(), "recreate");
 	outFile.SetCompressionLevel(GSettings().get("froast.tfile.compression.level", 1));
@@ -284,11 +289,11 @@ void Selector::mapSingle(const TString &inFileName, const TString &mappers, cons
 }
 
 
-void Selector::mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile) {
+void FroastTools::mapMulti(const TString &fileName, const TString &mappers, const TString &tag, bool noRecompile) {
 
-	cerr << TString::Format("Selector::map(%s, %s, %s)", fileName.Data(), mappers.Data(), tag.Data()) << endl;
+	cerr << TString::Format("FroastTools::map(%s, %s, %s)", fileName.Data(), mappers.Data(), tag.Data()) << endl;
 	
-	///	For description of mappers see Selector::mapSingle
+	///	For description of mappers see FroastTools::mapSingle
 
 	TChain chain("");
 	chain.Add(fileName.Data());
@@ -310,12 +315,12 @@ void Selector::mapMulti(const TString &fileName, const TString &mappers, const T
 			Settings::global().tenv()->SetValue(record->GetName(), record->GetValue(), record->GetLevel());
 	}
 	delete tenv_copy;
-	cerr << "Selector::map(...) finished" << endl;
+	cerr << "FroastTools::map(...) finished" << endl;
 }
 
 
-void Selector::reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile) {
-	cerr << TString::Format("Selector::reduce(%s, %s, %s)", inFileNames.Data(), mappers.Data(), outFileName.Data()) << endl;
+void FroastTools::reduce(const TString &inFileNames, const TString &mappers, const TString &outFileName, bool noRecompile) {
+	cerr << TString::Format("FroastTools::reduce(%s, %s, %s)", inFileNames.Data(), mappers.Data(), outFileName.Data()) << endl;
 	vector<TString> inFileList;
 	Util::split(inFileNames, " ", inFileList);
 	TFile outFile(outFileName, "recreate");
@@ -484,14 +489,14 @@ void Selector::reduce(const TString &inFileNames, const TString &mappers, const 
 	Settings::global().writeToGDirectory();
 	outFile.Write(0,TObject::kOverwrite);
 	outFile.Close();
-	cerr << "Selector::reduce(...) finished" << endl;
+	cerr << "FroastTools::reduce(...) finished" << endl;
 }
 
 
 // Based in part on TTreePlayer::scan (Copyright (C) 1995-2000, Rene Brun
 // and Fons Rademakers)
-void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
-	cerr << TString::Format("Selector::tabulate(TChain*, ostream, \"%s\", \"%s\")", varexp.Data(), selection.Data()) << endl;
+void FroastTools::tabulate(TTree *chain, std::ostream &out, const TString &varexp, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	cerr << TString::Format("FroastTools::tabulate(TChain*, ostream, \"%s\", \"%s\")", varexp.Data(), selection.Data()) << endl;
 
 	ssize_t logEvery = GSettings::get("selector.log.every", 10000);
 
@@ -673,5 +678,95 @@ void Selector::tabulate(TTree *chain, ostream &out, const TString &varexp, const
 	tformulas.Clear();
 }
 
+
+TEventList* FroastTools::genEventList(TTree *tree, const TString &name, const TString &selection, ssize_t nEntries, ssize_t startEntry) {
+	if (nEntries < 0) nEntries = numeric_limits<ssize_t>::max();
+	tree->Draw(TString(">> ") + name, selection, "", nEntries, startEntry);
+	TEventList* treeEventList = dynamic_cast<TEventList*>(gDirectory->FindObject(name));
+	assert(treeEventList != 0);
+
+	// TEventList returned by draw seems to stay connected to tree, resulting in segfault when
+	// list is used after tree is deleted. So return a copy instead.
+	TEventList* eventList = new TEventList(*treeEventList);
+	delete treeEventList;
+	eventList->SetName(name);
+	return eventList;
+}
+
+
+TTree* FroastTools::filter(TTree *inputTree, const TString &outTreeName, const TString &selection, TEventList *eventList, ssize_t nEntries, ssize_t startEntry) {
+	TEventList *oldList = inputTree->GetEventList();
+	inputTree->SetEventList(eventList);
+	if (nEntries < 0) nEntries = numeric_limits<ssize_t>::max();
+	TTree* outputTree = inputTree->CopyTree(selection, "", nEntries, startEntry);
+	inputTree->SetEventList(oldList);
+	return outputTree;
+}
+
+
+void FroastTools::filter(const std::list<TString> &inputs, const TString &tag, const TString &selection, TEventList *eventList, ssize_t nEntries, ssize_t startEntry) {
+	auto_ptr<TEventList> localEventList;
+	TString localSelection = selection;
+
+	if ((localSelection.Length() == 0) && ((startEntry > 0) || (nEntries > 0))) {
+		log_debug("No selection expression, but entry list and entry range specified, forcing selection expression to \"1\"");
+		localSelection = "1";
+	}
+
+	if (localSelection.Length() > 0) {
+		if (inputs.empty()) throw invalid_argument("No input to evaluate filter expression on");
+		TString firstFileName, firstTreeName;
+		Util::splitTFileObjName(*inputs.begin(), firstFileName, firstTreeName);
+		TFile *firstFile(new TFile(firstFileName, "read"));
+		TTree *firstTree = dynamic_cast<TTree*>(firstFile->Get(firstTreeName));
+		if (firstTree == 0) throw runtime_error("Can't open input TTree");
+		log_debug("Generating event list");
+		localEventList = auto_ptr<TEventList>(FroastTools::genEventList(firstTree, "localEventList", localSelection, nEntries, startEntry));
+		if (eventList != 0) {
+			log_debug("%lli events selected", (long long)localEventList->GetN());
+			log_debug("Intersecting with specified event list");
+			localEventList->Intersect(eventList);
+			log_debug("%lli events remain", (long long)localEventList->GetN());
+		}
+		delete firstFile;
+	}
+	TEventList *finalEventList = (&*localEventList != 0) ? &*localEventList : eventList;
+	if (finalEventList != 0) log_info("%lli events selected", (long long)finalEventList->GetN());
+
+	typedef std::map<TString, std::list<TString> > FilesTrees;
+	FilesTrees inFilesTrees;
+	for (list<TString>::const_iterator it = inputs.begin(); it != inputs.end(); ++it) {
+		TString fileName, treeName;
+		Util::splitTFileObjName(*it, fileName, treeName);
+		inFilesTrees[fileName].push_back(treeName);
+	}
+	for (FilesTrees::const_iterator ft = inFilesTrees.begin(); ft != inFilesTrees.end(); ++ft) {
+		const TString &inFileName = ft->first;
+		const list<TString> &treeNames = ft->second;
+
+		TString outFileName = (File(inFileName.Data()).base() % tag.Data()).path();
+
+		log_info("Copying input file \"%s\" to output file \"%s\"", inFileName.Data(), outFileName.Data());
+
+		auto_ptr<TFile> inputFile(new TFile(inFileName, "read"));
+		auto_ptr<TFile> outputFile(new TFile(outFileName, "recreate"));
+
+		if (finalEventList != 0) TreeEntryList(finalEventList).writeToGDirectory();
+
+		for (list<TString>::const_iterator tn = treeNames.begin(); tn != treeNames.end(); ++tn) {
+			const TString &treeName = *tn;
+			log_info("Copying tree \"%s\" in input file \"%s\"", treeName.Data(), inFileName.Data());
+			TTree *inputTree = dynamic_cast<TTree*>(inputFile->Get(treeName));
+			if (inputTree == 0) throw runtime_error("Can't open input TTree");
+
+			// Using event lists and entry ranges at the same time has weird effects
+			if (finalEventList != 0) filter(inputTree, treeName, "", finalEventList);
+			else filter(inputTree, treeName, "", 0, nEntries, startEntry);
+		}
+
+		outputFile->Write();
+		outputFile->Close();
+	}
+}
 
 } // namespace froast

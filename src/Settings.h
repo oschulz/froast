@@ -43,10 +43,14 @@ public:
 	operator std::string () const { return std::string(m_name.Data()); }
 	std::string str() const { return std::string(m_name.Data()); }
 
+	Param operator()(const TString &name) const;
 	Param operator()(int32_t idx) const;
+
+	Param operator%(const TString &name) const;
+	Param operator%(int32_t idx) const;
 	
 	Param();
-	Param(const TString &pname);
+	Param(const TString &name);
 	virtual ~Param();
 };
 

@@ -171,7 +171,7 @@ THashList* JSON::read(const char* json) {
 	return result;
 }
 
-THashList* JSON::read(istream &json) {
+THashList* JSON::read(std::istream &json) {
 	stringstream in;
 	in << json.rdbuf();
 	return read(in.str().c_str());
@@ -188,7 +188,7 @@ std::string JSON::toString(const TObject* list) {
 }
 
 
-ostream& JSON::write(ostream &json, const TObject* list) {
+std::ostream& JSON::write(std::ostream &json, const TObject* list) {
 	json.unsetf(ios::fixed | ios::scientific);
 	json << std::setprecision(std::numeric_limits<double>::digits10);
 	exportJSON(json, list);
