@@ -93,7 +93,7 @@ void exportJSON(ostream &json, const TObject* value) {
 			json << "{";
 			TIter next(objectValue, kIterForward);
 			const TPair *member;
-			while (member = dynamic_cast<const TPair*>(next())) {
+			while ( (member = dynamic_cast<const TPair*>(next())) ) {
 				if (counter > 0) json << ", ";
 				assert(dynamic_cast<const TObjString*>(member->Key()));
 				exportJSON(json, member->Key());
@@ -115,7 +115,7 @@ void exportJSON(ostream &json, const TObject* value) {
 			json << "[";
 			TIter next(arrayValue, kIterForward);
 			TObject *member;
-			while (member = next()) {
+			while ( (member = next()) ) {
 				if (counter > 0) json << ", ";
 				exportJSON(json, member);
 				++counter;
@@ -171,7 +171,7 @@ THashList* JSON::read(const char* json) {
 	return result;
 }
 
-THashList* JSON::read(istream &json) {
+THashList* JSON::read(std::istream &json) {
 	stringstream in;
 	in << json.rdbuf();
 	return read(in.str().c_str());
@@ -188,7 +188,7 @@ std::string JSON::toString(const TObject* list) {
 }
 
 
-ostream& JSON::write(ostream &json, const TObject* list) {
+std::ostream& JSON::write(std::ostream &json, const TObject* list) {
 	json.unsetf(ios::fixed | ios::scientific);
 	json << std::setprecision(std::numeric_limits<double>::digits10);
 	exportJSON(json, list);

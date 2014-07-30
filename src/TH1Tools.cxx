@@ -1,4 +1,4 @@
-// Copyright (C) 2011 Oliver Schulz <oliver.schulz@tu-dortmund.de>
+// Copyright (C) 2013 Oliver Schulz <oliver.schulz@tu-dortmund.de>
 
 // This is free software; you can redistribute it and/or modify it under
 // the terms of the GNU Lesser General Public License as published by
@@ -15,34 +15,23 @@
 // Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 
-#ifndef FROAST_JSON_H
-#define FROAST_JSON_H
+#include "TH1Tools.h"
 
-#include <string>
 #include <iostream>
 
-#include <THashList.h>
-#include <TString.h>
-#include <TParameter.h>
+
+using namespace std;
 
 
 namespace froast {
 
 
-class JSON {
-public:
-	static THashList* read(const char* json);
-	static THashList* read(std::istream &json);
-	static THashList* read(const std::string &json);
-	static THashList* read(const TString &json);
+TH1Tools::TH1Tools(TH1* h)
+	: m_hist(h)
+{}
 
-	static std::string toString(const TObject* list);
 
-	static std::ostream& write(std::ostream &json, const TObject* list);
-};
+TH1Tools::~TH1Tools() {}
 
 
 } // namespace froast
-
-
-#endif // FROAST_JSON_H

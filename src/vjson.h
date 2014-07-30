@@ -39,7 +39,7 @@ enum json_type
 	JSON_STRING,
 	JSON_INT,
 	JSON_FLOAT,
-	JSON_BOOL,
+	JSON_BOOL
 };
 
 struct json_value

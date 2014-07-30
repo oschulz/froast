@@ -20,10 +20,11 @@
 #include <string>
 #include <set>
 #include <sstream>
-#include <iostream>
 #include <fstream>
 #include <limits>
 #include <algorithm>
+#include <memory>
+#include <stdexcept>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -33,6 +34,7 @@
 #include <TMap.h>
 #include <TParameter.h>
 #include <TPRegexp.h>
+#include <TFile.h>
 
 #include "util.h"
 #include "JSON.h"
@@ -46,12 +48,27 @@ using namespace std;
 namespace froast {
 
 
-Param Param::operator()(int32_t idx) const {
+Param Param::operator()(const TString &name) const {
 	TPRegexp wildcardExpr("[*]");
+	Param result(m_name);
+	wildcardExpr.Substitute(result.m_name, name, "", 0, 1);
+	return result;
+}
+
+Param Param::operator()(int32_t idx) const {
 	if (idx < 0) throw invalid_argument("Negative value passed as Param index");
 	Param result(m_name);
-	wildcardExpr.Substitute(result.m_name, TString::Format("%li", (long)idx), "", 0, 1);
-	return result;
+	return (*this)(TString::Format("%li", (long)idx));
+}
+
+
+Param Param::operator%(const TString &name) const {
+	return Param(m_name.Length() > 0 ? m_name + "." + name : name);
+}
+
+Param Param::operator%(int32_t idx) const {
+	if (idx < 0) throw invalid_argument("Negative value passed as Param index");
+	return (*this) % TString::Format("%li", (long)idx);
 }
 
 	
@@ -69,8 +86,13 @@ Param::~Param() {}
 Settings Settings::m_global(gEnv, false);
 	
 
-void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instances) {
-	set<int32_t> found;
+bool Settings::defined(const char* name) {
+	return tenv()->Defined(name);
+}
+
+
+void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instances) const {
+	std::set<int32_t> found;
 	instances.clear();
 	
 	TString pre, post;
@@ -85,7 +107,7 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while ( (record = dynamic_cast<TEnvRec*>(next())) ) {
 		TString name(record->GetName());
 		if (
 			(name.Length() > pre.Length() + post.Length())
@@ -116,28 +138,66 @@ void Settings::getInstances(const TString &pattern, std::vector<int32_t> &instan
 
 
 bool Settings::operator()(const char* name, bool dflt, bool saveDflt) {
-	bool value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt) > 0;
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	bool value = dflt;
+	bool saveValue = false;
+
+	if (tenv()->Defined(name)) {
+		const char* strVal =  tenv()->GetValue(name, "");
+		if (strcmp(strVal, "true") == 0) value = true;
+		else if (strcmp(strVal, "false") == 0) value = false;
+		else value = ( tenv()->GetValue(name, int32_t(dflt)) ) > 0 ? true : false;
+	}
+	else saveValue = true;
+
+	if (saveValue) set(name, value, kEnvLocal);
 	return value;
 }
 
 
 int32_t Settings::operator()(const char* name, int32_t dflt, bool saveDflt) {
-	int32_t value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	bool saveValue = saveDflt && !tenv()->Defined(name);
+	int32_t value = tenv()->GetValue(name, dflt);
+	if (saveValue) set(name, value, kEnvLocal);
 	return value;
 }
 
 
 double Settings::operator()(const char* name, double dflt, bool saveDflt) {
-	double value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	bool saveValue = saveDflt && !tenv()->Defined(name);
+	double value = tenv()->GetValue(name, dflt);
+	if (saveValue) set(name, value, kEnvLocal);
 	return value;
 }
 
+
 const char* Settings::operator()(const char* name, const char* dflt, bool saveDflt) {
-	const char* value = (tenv()->Defined(name)?*tenv():outgoing).GetValue(name,dflt);
-	if (saveDflt && !outgoing.Defined(name)) outgoing.SetValue(name, value);
+	bool saveValue = saveDflt && !tenv()->Defined(name);
+	const char* value = tenv()->GetValue(name, dflt);
+	if (saveValue) set(name, value, kEnvLocal);
+	return value;
+}
+
+
+bool Settings::set(const char* name, bool value, EEnvLevel level) {
+	tenv()->SetValue(name, value ? "true" : "false", level);
+	return value;
+}
+
+
+int32_t Settings::set(const char* name, int32_t value, EEnvLevel level) {
+	tenv()->SetValue(name, Form("%ld", (long int)(value)), level);
+	return value;
+}
+
+
+double Settings::set(const char* name, double value, EEnvLevel level) {
+	tenv()->SetValue(name, Form("%g", value), level);
+	return value;
+}
+
+
+const char* Settings::set(const char* name, const char* value, EEnvLevel level) {
+	tenv()->SetValue(name, value, level);
 	return value;
 }
 
@@ -150,7 +210,7 @@ THashList* Settings::exportNested(EEnvLevel minLevel) const {
 
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while ( (record = dynamic_cast<TEnvRec*>(next())) ) {
 		TString name(record->GetName());
 		TString valueString = TString(record->GetValue()).Strip(TString::kBoth);
 		const char *valueCString = valueString.Data();
@@ -204,10 +264,9 @@ THashList* Settings::exportNested(EEnvLevel minLevel) const {
 
 
 void Settings::importNested(const THashList *nested, EEnvLevel level, const TString &prefix) {
-	int counter = 0;
 	TIter next(nested, kIterForward);
 	const TPair *member;
-	while (member = dynamic_cast<const TPair*>(next())) {
+	while ( (member = dynamic_cast<const TPair*>(next())) ) {
 		const TObjString *keyObj = dynamic_cast<const TObjString*>(member->Key());
 		assert( keyObj != 0 );
 		TString key = keyObj->GetString();
@@ -228,7 +287,7 @@ void Settings::importNested(const THashList *nested, EEnvLevel level, const TStr
 
 
 
-void Settings::write(const TString &fileName, EEnvLevel minLevel) {
+void Settings::write(const TString &fileName, EEnvLevel minLevel) const {
 	ofstream out(fileName.Data());
 	write(out, minLevel);
 	out.close();
@@ -240,13 +299,25 @@ void Settings::read(const TString &fileName, EEnvLevel level) {
 }
 
 
-std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) {
-	THashList *settings = table();
+void Settings::writeJSON(std::ostream &out, EEnvLevel minLevel) const {
+	auto_ptr<THashList> nested(exportNested(minLevel));
+	JSON::write(out, &(*nested)) << endl;
+}
+
+
+void Settings::readJSON(std::istream &in, EEnvLevel level) {
+	auto_ptr<THashList> nested(JSON::read(in));
+	importNested(&(*nested), level);
+}
+
+
+std::ostream& Settings::write(std::ostream &out, EEnvLevel minLevel) const {
+	const THashList *settings = table();
 	if (settings == 0) return out;
 
 	TIter next(settings, kIterForward);
 	TEnvRec *record;
-	while (record = dynamic_cast<TEnvRec*>(next())) {
+	while ( (record = dynamic_cast<TEnvRec*>(next())) ) {
 		if (record->GetLevel() >= minLevel)
 			out << TString::Format("%s: %s\n", record->GetName(), record->GetValue()).Data();
 	}
@@ -265,11 +336,11 @@ void Settings::read(TDirectory *tdir, const TString &name) {
 }
 
 
-void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
+void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) const {
 	THashList settingsOut;
 	settingsOut.SetName(name.Data());
 	
-	THashList *settings = table();
+	const THashList *settings = table();
 	assert (settings != 0);
 	TIter next(settings, kIterForward);
 	while (TEnvRec* record = dynamic_cast<TEnvRec*>(next())) {
@@ -277,7 +348,7 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
 		if ((record->GetLevel() >= minLevel) && !name.Contains("Path"))
 			settingsOut.AddLast(record->Clone());
 	}
-	next=TIter(outgoing.GetTable(), kIterForward);
+	next=TIter(tenv()->GetTable(), kIterForward);
 	while (TEnvRec *record = dynamic_cast<TEnvRec*>(next()))
 		if (record->GetLevel() >= minLevel)
 			settingsOut.AddLast(record->Clone());
@@ -285,7 +356,29 @@ void Settings::writeToGDirectory(const TString &name, EEnvLevel minLevel) {
 }
 
 
-std::string Settings::toString() {
+void Settings::readAuto(const TString &fileName, EEnvLevel level) {
+	if (Util::isTFileObjName(fileName)) {
+		TString rootFileName, objectName;
+		Util::splitTFileObjName(fileName, rootFileName, objectName);
+		TFile inFile(rootFileName.Data(), "read");
+		if (objectName.Length() > 0) read(&inFile, objectName);
+		else read(&inFile);
+	} else if (fileName.EndsWith("rootrc")) {
+		read(fileName, level);
+	} else if (fileName=="-" || fileName.EndsWith("/stdin")) {
+		// yes this isn't super-safe for instance on ./stdin but who would name a file 'stdin'????
+		//!! TODO: Deprecate support for "/stdin"
+		read(TString("/dev/stdin"), level);
+	} else if (fileName.EndsWith(".json")) {
+		ifstream in(fileName.Data());
+		readJSON(in, level);
+	} else {
+		throw invalid_argument((TString("Unknown file extension, can't read settings from \"") + fileName + "\".").Data());
+	}
+}
+
+
+std::string Settings::toString() const {
 	stringstream out;
 	write(out);
 	return out.str();
@@ -305,7 +398,9 @@ Settings::Settings()
 	: m_env(new TEnv), m_envOwned(true) {}
 
 
-Settings::~Settings() {}
+Settings::~Settings() {
+	if (m_envOwned && (m_env !=0)) delete m_env;
+}
 
 
 } // namespace froast

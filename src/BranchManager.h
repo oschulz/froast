@@ -80,9 +80,15 @@ public:
 template <typename Value> ManagedBranch& ManagedBranch::inputValueFrom(Value &value, TTree *tree, const char* branchName, bool optional) {
 	if ((branchName != 0) && (tree->SetBranchAddress(branchName, &value) >= 0) ) { m_inAvail = true; return *this; }
 	else for (std::vector<TString>::const_iterator it = names().begin(); it != names().end(); ++it) {
-		// TChain::SetBranchAddress returns kNoCheck in every case, so:
-		if ( (tree->GetBranch(it->Data())) && (tree->SetBranchAddress(it->Data(), &value) >= 0) )
-			{ m_inAvail = true; return *this; }
+		// TChain::SetBranchAddress seems to return kNoCheck in every case, so:
+		if (tree->GetBranch(it->Data())) {
+			tree->SetBranchStatus(it->Data(), true);
+			if (tree->SetBranchAddress(it->Data(), &value) >= 0) {
+				tree->AddBranchToCache(it->Data());
+				m_inAvail = true;
+				return *this;
+			}
+		}
 	}
 	m_inAvail = false;
 	if (!optional) throw std::runtime_error(Form("Could not load branch \"%s\"", branchName ? branchName : name().Data()));
@@ -144,6 +150,9 @@ public:
 
 	A& content() { return *value; }
 	const A& content() const { return *value; }
+
+	A& operator()() { return *value; }
+	const A& operator()() const { return *value; }
 	
 	A& operator=(const A &v) { return (*value) = v; }
 	
@@ -177,6 +186,9 @@ public:
 
 	std::vector<A>& content() { return *value; }
 	const std::vector<A>& content() const { return *value; }
+
+	std::vector<A>& operator()() { return *value; }
+	const std::vector<A>& operator()() const { return *value; }
 	
 	bool empty() { return value->empty(); }
 	size_t size() { return value->size(); }
@@ -193,6 +205,11 @@ public:
 	std::vector<A>& operator=(const std::vector<A> &v) { return (*value) = v; }
 
 	void push_back(const A &x) { value->push_back(x); }
+
+	typename std::vector<A>::iterator begin() { return value->begin(); }
+	typename std::vector<A>::const_iterator begin() const { return value->begin(); }
+	typename std::vector<A>::iterator end() { return value->end(); }
+	typename std::vector<A>::const_iterator end() const { return value->end(); }
 	
 	operator std::vector<A>& () { return *value; }
 	operator const std::vector<A>& () const { return *value; }
@@ -285,33 +302,5 @@ public:
 
 } // namespace froast
 
-
-#ifdef __CINT__
-#pragma link C++ class froast::ManagedBranch-;
-
-#pragma link C++ class froast::ScalarBranch<char>-;
-#pragma link C++ class froast::ScalarBranch<bool>-;
-#pragma link C++ class froast::ScalarBranch<int16_t>-;
-#pragma link C++ class froast::ScalarBranch<int32_t>-;
-#pragma link C++ class froast::ScalarBranch<float>-;
-#pragma link C++ class froast::ScalarBranch<double>-;
-
-#pragma link C++ class froast::ObjectBranch<TString>-;
-#pragma link C++ typedef froast::TStringBranch;
-#pragma link C++ class froast::ObjectBranch<TUUID>-;
-#pragma link C++ typedef froast::TUUIDBranch;
-
-#pragma link C++ class froast::VectorBranch<char>-;
-// #pragma link C++ class froast::VectorBranch<bool>-;
-#pragma link C++ class froast::VectorBranch<int16_t>-;
-#pragma link C++ class froast::VectorBranch<int32_t>-;
-#pragma link C++ class froast::VectorBranch<float>-;
-#pragma link C++ class froast::VectorBranch<double>-;
-#pragma link C++ class froast::VectorBranch<TString>-;
-
-#pragma link C++ class froast::BranchManager-;
-#pragma link C++ class froast::InputBranchManager-;
-#pragma link C++ class froast::OutputBranchManager-;
-#endif
 
 #endif // FROAST_BRANCHMANAGER_H

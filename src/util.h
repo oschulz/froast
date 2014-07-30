@@ -33,52 +33,61 @@ namespace froast {
 
 
 class Util {
+protected:
+	static TString s_objSpecSep;
+
 public:
 	inline static double floatNaN() { return std::numeric_limits<float>::quiet_NaN(); }
 	inline static double doubleNaN() { return std::numeric_limits<double>::quiet_NaN(); }
-	
-	///	@brief	Copies entries of TCollection of TStrings to a std::vector of TString
-	///	@param	from	TCollection to be copied from
-	///	@param	to		std::string to be copied into
+
+	/// @brief Copies    entries of TCollection of TStrings to a std::vector of TString
+	/// @param from     TCollection to be copied from
+	/// @param to       std::string to be copied into
 	static void copy(const TCollection *from, std::vector<TString> &to);
-	///	@brief	Copies entries of TCollection of TStrings to a std::vector of TString
-	///	@param	from	TCollection to be copied from
-	///	@param	to		std::string to be copied into
-	///	@param	strip	Whether to strip leading/trailing blanks
+	/// @brief Copies entries of TCollection of TStrings to a std::vector of TString
+	/// @param from     TCollection to be copied from
+	/// @param to       std::string to be copied into
+	/// @param strip    Whether to strip leading/trailing blanks
 	static void copy(const TCollection *from, std::vector<TString> &to, TString::EStripType strip);
 
-	///	@brief	split TString into parts according to separation character and put them into std::vector of TString
-	///	@param	s		TString to be split
-	///	@param	sep	Character/expression separating the parts of s
-	///	@param	parts	std::vector to write splitted parts into
+	/// @brief split    string into parts according to separation character and put them into std::vector of TString
+	/// @param s        string to be split
+	/// @param sep      Character/expression separating the parts of s
+	/// @param parts    std::vector to write splitted parts into
 	static void split(const TString &s, const TString &sep, std::vector<TString> &parts);
-	///	@brief	split TString into parts according to separation character and put them into std::vector of TString
-	///	@param	s		TString to be split
-	///	@param	sep		Character/expression separating the parts of s
-	///	@param	parts	std::vector to write splitted parts into
-	///	@param	strip 	Whether to strip leading/trailing blanks
+	/// @brief split string into parts according to separation character and put them into std::vector of TString
+	/// @param s  string to be split
+	/// @param sep  Character/expression separating the parts of s
+	/// @param parts std::vector to write splitted parts into
+	/// @param strip  Whether to strip leading/trailing blanks
 	static void split(const TString &s, const TString &sep, std::vector<TString> &parts, TString::EStripType strip);
 
-	///	@brief	Returns std::vector matching regular expressions to TString
-	///	@param	s			TString to be scanned
-	///	@param	expr		Regular expressions
-	///	@param	matches	std::vector to copy matched expressions into
-	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &matches);
-	///	@brief	Returns std::vector matching regular expressions to TString
-	///	@param	s	TString to be scanned
-	///	@param	expr	Regular expressions
-	///	@param	matches	std::vector to copy matched expressions into
-	///	@param	strip 	Whether to strip leading/trailing blanks
-	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &matches, TString::EStripType strip);
+	/// @brief Returns std::vector matching regular expressions to TString
+	/// @brief Match a string with a regular expression
+	/// @param s        String to be matched
+	/// @param expr     Regular expression
+	/// @param groups   std::vector to copy matched groups into
+	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &groups);
+	/// @brief Match a string with a regular expression
+	/// @param s        String to be matched
+	/// @param expr     Regular expression
+	/// @param groups   std::vector to copy matched groups into
+	/// @param strip    Strip leading and/or trailing blanks (see TString::EStripType)
+	static void match(const TString &s, TPRegexp &expr, std::vector<TString> &groups, const TString::EStripType strip);
+
+	/// @brief Check if string is a ".root" file name with optional object name
+	/// @return  @c true if string is of the form "[.../]FILE_NAME.root[/OBJECT_NAME]", @c false otherwise
+	static bool isTFileObjName(const TString &fileObjName);
+
+	/// @brief Split a string of the form "[.../]FILE_NAME.root[/OBJECT_NAME]" into info a file name and an optional object name
+	/// @param fileObjName  String to be split
+	/// @param fileName     Receives file name part of input string (including path, if any)
+	/// @param objectName   Receives object name part of input string, may be empty if no object is specified
+	static void splitTFileObjName(const TString &fileObjName, TString &fileName, TString &objectName);
 };
 
 
 } // namespace froast
-
-
-#ifdef __CINT__
-#pragma link C++ class froast::Util-;
-#endif
 
 
 #endif // FROAST_UTIL_H

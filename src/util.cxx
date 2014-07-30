@@ -27,6 +27,9 @@ using namespace std;
 namespace froast {
 
 
+TString Util::s_objSpecSep(".root/");
+
+
 void Util::copy(const TCollection *from, std::vector<TString> &to)
 	{ copy(from, to, TString::EStripType(-1)); }
 
@@ -36,12 +39,11 @@ void Util::copy(const TCollection *from, std::vector<TString> &to, TString::EStr
 	to.resize(n);
 	TIter next(from, kIterForward);
 	TObject *entry;
-	for (int i = 0; entry = next(); ++i) {
+	for (int i = 0; (entry = next()); ++i) {
 		if (entry != 0) {
 			const TObjString *s = dynamic_cast<TObjString*>(entry);
 			if (s == 0) throw invalid_argument("TObjArray contains an element which is not of expected type TString.");
-			if (int(strip) >= 0) to[i] = s->GetString().Strip(TString::kBoth); // strip blanks at beginning and / or end of string
-			else to[i] = s->GetString();
+			to[i] = s->GetString().Strip(strip);
 		} else {
 			to[i] = TString("");
 		}
@@ -62,16 +64,33 @@ void Util::split(const TString &s, const TString &sep, std::vector<TString> &par
 }
 
 
-void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &matches) {
+void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &groups) {
 	TObjArray* result = expr.MatchS(s);
-	copy(result, matches);
+	copy(result, groups);
 	delete result;
 }
 
-void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &matches, TString::EStripType strip) {
+void Util::match(const TString &s, TPRegexp &expr, std::vector<TString> &groups, TString::EStripType strip) {
 	TObjArray* result = expr.MatchS(s);
-	copy(result, matches, strip);
+	copy(result, groups, strip);
 	delete result;
+}
+
+
+bool Util::isTFileObjName(const TString &fileObjName) {
+	return fileObjName.EndsWith(".root") || fileObjName.Contains(s_objSpecSep);
+}
+
+
+void Util::splitTFileObjName(const TString &fileObjName, TString &fileName, TString &objectName) {
+	if (isTFileObjName(fileObjName)) {
+		fileName = fileObjName;
+		int idx = fileName.Index(s_objSpecSep);
+		if (idx >= 0) {
+			fileName = fileName(0, idx + s_objSpecSep.Length() - 1);
+			objectName = fileObjName(idx + s_objSpecSep.Length(), fileObjName.Length() - idx - s_objSpecSep.Length());
+		}
+	} else throw invalid_argument("Expected a \".root\" file name");
 }
 
 

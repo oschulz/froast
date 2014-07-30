@@ -75,8 +75,4 @@ public:
 } // namespace froast
 
 
-#ifdef __CINT__
-#pragma link C++ class froast::File-;
-#endif
-
 #endif // FROAST_FILE_H

@@ -18,6 +18,7 @@
 #ifndef FROAST_SETTINGS_H
 #define FROAST_SETTINGS_H
 
+#include <iostream>
 #include <vector>
 #include <stdint.h>
 
@@ -42,10 +43,14 @@ public:
 	operator std::string () const { return std::string(m_name.Data()); }
 	std::string str() const { return std::string(m_name.Data()); }
 
+	Param operator()(const TString &name) const;
 	Param operator()(int32_t idx) const;
+
+	Param operator%(const TString &name) const;
+	Param operator%(int32_t idx) const;
 	
 	Param();
-	Param(const TString &pname);
+	Param(const TString &name);
 	virtual ~Param();
 };
 
@@ -54,19 +59,26 @@ class Settings {
 protected:
 	static Settings m_global;
 
-	TEnv *m_env, outgoing;
+	TEnv *m_env;
 	bool m_envOwned;
 	
 public:
 	static Settings &global() { return m_global; }
 
-	void getInstances(const TString &pattern, std::vector<int32_t> &instances);
+	bool defined(const char* name);
+
+	void getInstances(const TString &pattern, std::vector<int32_t> &instances) const;
 
 	bool operator()(const char* name, bool dflt, bool saveDflt = true);
 	int32_t operator()(const char* name, int32_t dflt, bool saveDflt = true);
 	double operator()(const char* name, double dflt, bool saveDflt = true);
 	const char* operator()(const char* name, const char* dflt, bool saveDflt = true);
-	
+
+	bool set(const char* name, bool value, EEnvLevel level = kEnvLocal);
+	int32_t set(const char* name, int32_t value, EEnvLevel level = kEnvLocal);
+	double set(const char* name, double value, EEnvLevel level = kEnvLocal);
+	const char* set(const char* name, const char* value, EEnvLevel level = kEnvLocal);
+
 	const TEnv* tenv() const { return m_env; }
 	TEnv* tenv() { return m_env; }
 	const THashList* table() const { return tenv()->GetTable(); }
@@ -75,15 +87,20 @@ public:
 	THashList* exportNested(EEnvLevel minLevel = kEnvLocal) const;
 	void importNested(const THashList *nested, EEnvLevel level = kEnvLocal, const TString &prefix = "");
 
-	void write(const TString &fileName, EEnvLevel minLevel = kEnvLocal);
+	void write(const TString &fileName, EEnvLevel minLevel = kEnvLocal) const;
 	void read(const TString &fileName, EEnvLevel level = kEnvLocal);
-	
-	std::ostream& write(std::ostream &out, EEnvLevel minLevel = kEnvLocal);
+
+	void writeJSON(std::ostream &out, EEnvLevel minLevel = kEnvLocal) const;
+	void readJSON(std::istream &in, EEnvLevel level = kEnvLocal);
+
+	std::ostream& write(std::ostream &out, EEnvLevel minLevel = kEnvLocal) const;
 
 	void read(TDirectory *tdir, const TString &name = "settings");
-	void writeToGDirectory(const TString &name = "settings", EEnvLevel minLevel = kEnvLocal);
+	void writeToGDirectory(const TString &name = "settings", EEnvLevel minLevel = kEnvLocal) const;
 
-	std::string toString();
+	void readAuto(const TString &fileName, EEnvLevel level = kEnvLocal);
+
+	std::string toString() const;
 	
 	void clear();
 
@@ -103,16 +120,13 @@ public:
 	static int32_t get(const char* name, int32_t dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
 	static double get(const char* name, double dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
 	static const char* get(const char* name, const char* dflt, bool saveDflt = true) { return Settings::global()(name, dflt, saveDflt); }
+
+	static void readAuto(const TString &fileName, EEnvLevel level = kEnvLocal)
+		{ Settings::global().readAuto(fileName, level); }
 };
 
 
 } // namespace froast
 
-
-#ifdef __CINT__
-#pragma link C++ class froast::Param-;
-#pragma link C++ class froast::Settings-;
-#pragma link C++ class froast::GSettings-;
-#endif
 
 #endif // FROAST_SETTINGS_H
