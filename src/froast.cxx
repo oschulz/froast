@@ -18,6 +18,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <list>
 #include <cstdlib>
 #include <cstring>
 
@@ -30,9 +31,9 @@
 
 #include "logging.h"
 #include "util.h"
-#include "Selector.h"
+#include "FroastTools.h"
 #include "Settings.h"
-#include "JSON.h"
+#include "TreeEntryList.h"
 
 
 /*!	\mainpage	Programme to evaluate CPG pulse shape data
@@ -70,6 +71,41 @@ void writeSettings(const Settings &settings, const std::string &format) {
 	if (format == "json") settings.writeJSON(cout);
 	else if (format == "rootrc") settings.write(cout);
 	else throw invalid_argument("Unknown settings output format");
+}
+
+
+// Format of inputSpec: TFILE_NAME + "/" + TREE_NAME
+TChain* openTChain(const TString &inputSpec) {
+	ssize_t splitPos = inputSpec.Last('/');
+	if ((splitPos < 0) || (splitPos >= inputSpec.Length()-1))
+		throw invalid_argument("No tree name in input specification");
+
+	TString inFileName = inputSpec(0, splitPos);
+	TString treeName = inputSpec(splitPos + 1, inputSpec.Length() - splitPos - 1);
+	TChain *chain = new TChain(treeName);
+
+	if (inFileName.First('*')>=inFileName.Last('/')) {
+		chain->Add(inFileName);
+	    // O. Reinecke: this should assist the TChain with its retarded shell expansion
+	} else {
+		TObjArray &files=*chain->GetListOfFiles();
+		chain->Add((TString)inFileName(0,splitPos=inFileName.First('/')));
+		int length=files.GetEntries();
+		inFileName.Remove(0,splitPos+1);
+		while (inFileName.Length()>0 && length>0) {
+			splitPos=inFileName.First('/');
+			if (splitPos<0) splitPos=inFileName.Length();
+			for (int entry=0;entry<length;entry++)
+				chain->Add(TString(files[entry]->GetTitle())+"/"+inFileName(0,splitPos));
+			files.RemoveRange(0,length-1);
+			files.Compress();
+			length=files.GetEntries();
+			inFileName.Remove(0,splitPos+1);
+		}
+		// O. Reinecke: it seems that the operation above messes up chain's file list, so let's just rebuild it here:
+		TObjArray a(*(TObjArray*)files.Clone()); chain->Reset();
+		for (int entry=0;entry<length;entry++) chain->Add(a[entry]->GetTitle());
+	}
 }
 
 
@@ -160,8 +196,8 @@ int map_single(int argc, char *argv[], char *envp[]) {
 	string outFileName = argv[optind++];
 	string inFileName = argv[optind++];
 
-	log_debug("Selector::mapSingle(\"%s\", \"%s\", \"%s\")", inFileName.c_str(), mappers.c_str(), outFileName.c_str());
-	Selector::mapSingle(inFileName, mappers, outFileName);
+	log_debug("FroastTools::mapSingle(\"%s\", \"%s\", \"%s\")", inFileName.c_str(), mappers.c_str(), outFileName.c_str());
+	FroastTools::mapSingle(inFileName, mappers, outFileName);
 
 	return 0;
 }
@@ -172,8 +208,6 @@ void map_multi_printUsage(const char* progName) {
 	cerr << "" << endl;
 	cerr << "Options:" << endl;
 	cerr << "-?          Show help" << endl;
-	cerr << "-f FORMAT   Set output format (formats: [rootrc], json)" << endl;
-	cerr << "-j          Set output format to JSON. DEPRECATED, use \"-f json\" instead." << endl;
 	cerr << "-c SETTINGS Load configuration/settings" << endl;
 	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
 	cerr << "" << endl;
@@ -202,8 +236,8 @@ int map_multi(int argc, char *argv[], char *envp[]) {
 		// By default the selector is compiled (++ ROOT compile option).
 		// If there are more than one inputfile, the selector is not recompiled
 		string input = argv[optind++];
-		log_debug("Selector::mapMulti(\"%s\", \"%s\", \"%s\", %s)", input.c_str(), mappers.c_str(), tag.c_str(), !firstInput ? "true" : "false");
-		Selector::mapMulti(input, mappers, tag, !firstInput);
+		log_debug("FroastTools::mapMulti(\"%s\", \"%s\", \"%s\", %s)", input.c_str(), mappers.c_str(), tag.c_str(), !firstInput ? "true" : "false");
+		FroastTools::mapMulti(input, mappers, tag, !firstInput);
 		firstInput = false;
 	}
 
@@ -243,8 +277,8 @@ int reduce(int argc, char *argv[], char *envp[]) {
 		inFiles+=" ";
 		inFiles+=argv[optind++];
 	}
-	log_debug("Selector::reduce(\"%s\", \"%s\", \"%s\")", inFiles.c_str(), mappers.c_str(), outFileName.c_str());
-	Selector::reduce(inFiles, mappers, outFileName);
+	log_debug("FroastTools::reduce(\"%s\", \"%s\", \"%s\")", inFiles.c_str(), mappers.c_str(), outFileName.c_str());
+	FroastTools::reduce(inFiles, mappers, outFileName);
 	return 0;
 }
 
@@ -285,42 +319,124 @@ int tabulate(int argc, char *argv[], char *envp[]) {
 	ssize_t nEntries = (optind < argc) ? atol(argv[optind++]) : -1;
 	ssize_t startEntry = (optind < argc) ? atol(argv[optind++]) : 0;
 
-	ssize_t splitPos = input.Last('/');
-	if ((splitPos < 0) || (splitPos >= input.Length()-1)) {
-		cerr << "Error: No tree name specified."  << endl;
-		return 1;
-	}
-	TString inFileName = input(0, splitPos);
-	TString treeName = input(splitPos + 1, input.Length() - splitPos - 1);
-	TChain chain(treeName);
+	TChain *chain = openTChain(input);
 
-	if (inFileName.First('*')>=inFileName.Last('/'))
-		chain.Add(inFileName);
-	// this should assist the TChain with its retarded shell expansion
-	else {
-		TObjArray &files=*chain.GetListOfFiles();
-		chain.Add((TString)inFileName(0,splitPos=inFileName.First('/')));
-		int length=files.GetEntries();
-		inFileName.Remove(0,splitPos+1);
-		while (inFileName.Length()>0 && length>0) {
-			splitPos=inFileName.First('/');
-			if (splitPos<0) splitPos=inFileName.Length();
-			for (int entry=0;entry<length;entry++)
-				chain.Add(TString(files[entry]->GetTitle())+"/"+inFileName(0,splitPos));
-			files.RemoveRange(0,length-1);
-			files.Compress();
-			length=files.GetEntries();
-			inFileName.Remove(0,splitPos+1);
-		}
-		// it seems that the operation above messes up chain's file list, so let's just rebuild it here:
-		TObjArray a(*(TObjArray*)files.Clone()); chain.Reset();
-		for (int entry=0;entry<length;entry++) chain.Add(a[entry]->GetTitle());
-	}
+	log_debug("FroastTools::tabulate(\"%s\", cout, \"%s\", \"%s\", %li, %li)", chain->GetName(), varexp.Data(), selection.Data(), (long int)nEntries, (long int)startEntry);
+	FroastTools::tabulate(chain, cout, varexp, selection, nEntries, startEntry);
 
-	log_debug("Selector::tabulate(\"%s\", cout, \"%s\", \"%s\", %li, %li)", chain.GetName(), varexp.Data(), selection.Data(), (long int)nEntries, (long int)startEntry);
-	Selector::tabulate(&chain, cout, varexp, selection, nEntries, startEntry);
+	delete chain;
 	
 	return 0;
+}
+
+
+void filter_multi_printUsage(const char* progName) {
+	cerr << "Syntax: " << progName << " [OPTIONS] TAG [INPUT]..." << endl;
+	cerr << "" << endl;
+	cerr << "Options:" << endl;
+	cerr << "-?          Show help" << endl;
+	cerr << "-s EXPR     Select expression (as in TTree::Draw and similar)" << endl;
+	cerr << "-e ENTRIES  Entry-list (see entrylist command)" << endl;
+	cerr << "-f IDX      Copy from entry IDX (default: 0)" << endl;
+	cerr << "-n N        Copy until entry IDX + N (default: -1 = no limit)" << endl;
+	cerr << "-c SETTINGS Load configuration/settings" << endl;
+	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
+	cerr << "" << endl;
+	cerr << "Copy TFiles with TTrees, optionally applying entry selection criteria. If a" << endl;
+	cerr << "filter expression is given, it is evaluated on the first input and the" << endl;
+	cerr << "resulting entry selection applied to all inputs." << endl;
+}
+
+int filter_multi(int argc, char *argv[], char *envp[]) {
+	string selection;
+	string entryListName;
+	ssize_t nEntries = -1;
+	ssize_t startEntry = 0;
+
+	int opt = 0;
+	while ((opt = getopt(argc, argv, "?s:e:f:n:c:l:")) != -1) {
+		switch (opt) {
+			case '?': { filter_multi_printUsage(argv[0]); return 0; }
+			case 's': {
+				selection = string(optarg);
+				log_debug("Using select expression \"%s\"", selection.c_str());
+				break;
+			}
+			case 'e': {
+				entryListName = string(optarg);
+				log_debug("Using entry list  \"%s\"", entryListName.c_str());
+				break;
+			}
+			case 'f': {
+				startEntry = atol(optarg);
+				log_debug("Starting at entry %lli", (long long) startEntry);
+				break;
+			}
+			case 'n': {
+				nEntries = atol(optarg);
+				log_debug("Processing %lli entries", (long long) nEntries);
+				break;
+			}
+			case 'c': { handleOptionConfig(optarg); break; }
+			case 'l': { handleOptionLogging(optarg); break; }
+			default: throw invalid_argument("Unkown command line option");
+		}
+	}
+
+	if (optind >= argc) { filter_multi_printUsage(argv[0]); return 1;	}
+	string tag = argv[optind++];
+
+	list<TString> inputs;
+	while (optind < argc) inputs.push_back(TString(argv[optind++]));
+
+	TEventList *eventList = 0;
+	TreeEntryList entries;
+	if (! entryListName.empty()) {
+		log_debug("Reading entry list from \"%s\"", entryListName.c_str());
+		entries.readAuto(entryListName);
+		eventList = entries.tevtList();
+	}
+
+	FroastTools::filter(inputs, tag, selection, eventList, nEntries, startEntry);
+
+	return 0;
+}
+
+
+void entrylist_printUsage(const char* progName) {
+	cerr << "Syntax: " << progName << " FILENAME ..." << endl;
+	cerr << "" << endl;
+	cerr << "Options:" << endl;
+	cerr << "-?          Show help" << endl;
+	cerr << "-l LEVEL    Set logging level (default: \"info\")" << endl;
+	cerr << "" << endl;
+	cerr << "Read event/entry list from files and output entry numbers." << endl;
+}
+
+int entrylist(int argc, char *argv[], char *envp[]) {
+	int opt = 0;
+	while ((opt = getopt(argc, argv, "?c:l:f:j")) != -1) {
+		switch (opt) {
+			case '?': { entrylist_printUsage(argv[0]); return 0; }
+			case 'l': { handleOptionLogging(optarg); break; }
+			default: throw invalid_argument("Unkown command line option");
+		}
+	}
+
+	if (argc - optind >= 1) {
+		TreeEntryList entries;
+		while (optind < argc) {
+			string inFileName(argv[optind++]);
+			log_debug("Reading entries from \"%s\"", inFileName.c_str());
+			entries.clear();
+			entries.readAuto(inFileName);
+			entries.writeASCII(cout);
+		}
+		return 0;
+	} else {
+		entrylist_printUsage(argv[0]);
+		return 1;
+	}
 }
 
 
@@ -331,7 +447,9 @@ void main_printUsage(const char* progName) {
 	cerr << "  map-single" << endl;
 	cerr << "  map-multi" << endl;
 	cerr << "  reduce" << endl;
+	cerr << "  filter-multi" << endl;
 	cerr << "  tabulate" << endl;
+	cerr << "  entrylist" << endl;
 	cerr << "" << endl;
 	cerr << "Use" << endl;
 	cerr << "" << endl;
@@ -363,7 +481,9 @@ int main(int argc, char *argv[], char *envp[]) {
 		else if (cmd == "map-single") return map_single(cmd_argc, cmd_argv, envp);
 		else if (cmd == "map-multi") return map_multi(cmd_argc, cmd_argv, envp);
 		else if (cmd == "reduce") return reduce(cmd_argc, cmd_argv, envp);
+		else if (cmd == "filter-multi") return filter_multi(cmd_argc, cmd_argv, envp);
 		else if (cmd == "tabulate") return tabulate(cmd_argc, cmd_argv, envp);
+		else if (cmd == "entrylist") return entrylist(cmd_argc, cmd_argv, envp);
 		else throw invalid_argument("Command not supported.");
 	}
 	catch(std::exception &e) {
