@@ -106,6 +106,8 @@ TChain* openTChain(const TString &inputSpec) {
 		TObjArray a(*(TObjArray*)files.Clone()); chain->Reset();
 		for (int entry=0;entry<length;entry++) chain->Add(a[entry]->GetTitle());
 	}
+
+	return chain;
 }
 
 
